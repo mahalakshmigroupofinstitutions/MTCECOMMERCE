@@ -1,0 +1,214 @@
+// NextGen — B2B marketplace schema.
+// Model shapes are derived from the design prototype's data.js sample data
+// (CATEGORIES, SUPPLIERS, PRODUCTS, QUOTES, ORDER) — see Phase 2/4/5 of the dev plan.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Buyer {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  name        String?
+  companyName String?
+  gstNumber   String?
+  city        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rfqs           RFQ[]
+  orders         Order[]
+  savedSuppliers SavedSupplier[]
+}
+
+model Category {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  icon  String?
+  tag   String?
+
+  products Product[]
+  rfqs     RFQ[]
+}
+
+model Supplier {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  city            String
+  verified        Boolean  @default(false)
+  trustScore      Float    @default(0)
+  reviewsCount    Int      @default(0)
+  years           Int      @default(0)
+  responseTime    String?
+  deliveryPercent Int      @default(0)
+  gstNumber       String?
+  phone           String?
+  tags            String[]
+  blurb           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  products       Product[]
+  quotes         Quote[]
+  orders         Order[]
+  savedByBuyers  SavedSupplier[]
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  supplierId      String
+  categoryId      String
+  unit            String
+  price           Int
+  moq             Int
+  moqUnit         String
+  rating          Float?
+  ordersLabel     String?
+  verifiedProduct Boolean  @default(false)
+  specs           Json?
+  tiers           Json?
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  rfqs     RFQ[]
+  orders   Order[]
+
+  @@index([categoryId])
+  @@index([supplierId])
+}
+
+enum RfqStatus {
+  OPEN
+  QUOTED
+  CLOSED
+}
+
+model RFQ {
+  id                 String    @id @default(cuid())
+  buyerId            String
+  productId          String?
+  categoryId         String?
+  quantity           String
+  notes              String?
+  targetDeliveryDate DateTime?
+  status             RfqStatus @default(OPEN)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  buyer    Buyer     @relation(fields: [buyerId], references: [id])
+  product  Product?  @relation(fields: [productId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+  quotes   Quote[]
+  orders   Order[]
+
+  @@index([buyerId])
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  rfqId      String
+  supplierId String
+  price      Int
+  unit       String
+  moq        String?
+  delivery   String?
+  payment    String?
+  validUntil DateTime?
+  best       Boolean     @default(false)
+  note       String?
+  status     QuoteStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  rfq      RFQ      @relation(fields: [rfqId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  order    Order?
+
+  @@index([rfqId])
+}
+
+enum OrderStatus {
+  CONFIRMED
+  PAYMENT_RECEIVED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  rfqId           String?
+  quoteId         String?       @unique
+  buyerId         String
+  supplierId      String
+  productId       String?
+  quantity        String
+  total           Int
+  status          OrderStatus   @default(CONFIRMED)
+  paymentStatus   PaymentStatus @default(PENDING)
+  razorpayOrderId String?
+  placedAt        DateTime      @default(now())
+  etaAt           DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  buyer    Buyer     @relation(fields: [buyerId], references: [id])
+  supplier Supplier  @relation(fields: [supplierId], references: [id])
+  product  Product?  @relation(fields: [productId], references: [id])
+  rfq      RFQ?      @relation(fields: [rfqId], references: [id])
+  quote    Quote?    @relation(fields: [quoteId], references: [id])
+  steps    OrderStep[]
+
+  @@index([buyerId])
+  @@index([supplierId])
+}
+
+model OrderStep {
+  id        String    @id @default(cuid())
+  orderId   String
+  key       String
+  label     String
+  position  Int
+  done      Boolean   @default(false)
+  active    Boolean   @default(false)
+  at        DateTime?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+}
+
+model SavedSupplier {
+  buyerId    String
+  supplierId String
+  createdAt  DateTime @default(now())
+
+  buyer    Buyer    @relation(fields: [buyerId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@id([buyerId, supplierId])
+}

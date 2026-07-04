@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* NextGen design tokens — ported from the prototype's ui.jsx palette. */
+:root {
+  --color-ink: #0a0a0a;
+  --color-accent: #e8590c;
+  --color-sub: #6b6b68;
+  --color-faint: #9a9a96;
+  --color-line: #e9e8e4;
+  --color-paper: #ffffff;
+  --color-wash: #f6f5f2;
+
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: var(--color-ink);
+  --color-accent: var(--color-accent);
+  --color-sub: var(--color-sub);
+  --color-faint: var(--color-faint);
+  --color-line: var(--color-line);
+  --color-paper: var(--color-paper);
+  --color-wash: var(--color-wash);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* hide scrollbars inside horizontally-scrolling rails (category chips, etc.) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
