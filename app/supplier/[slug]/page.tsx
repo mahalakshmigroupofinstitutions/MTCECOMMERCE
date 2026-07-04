@@ -6,6 +6,9 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 import { Tag } from "@/components/catalog/Tag";
 import { getSupplierBySlug } from "@/lib/catalog";
 import { whatsappHref } from "@/lib/whatsapp";
+import { getCurrentBuyerId } from "@/lib/session";
+import { isSupplierSaved } from "@/lib/account";
+import { toggleSaveSupplierAction } from "@/app/account/actions";
 
 export const revalidate = 0;
 
@@ -15,6 +18,8 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
   if (!supplier) notFound();
 
   const firstProduct = supplier.products[0];
+  const buyerId = await getCurrentBuyerId();
+  const saved = buyerId ? await isSupplierSaved(buyerId, supplier.id) : false;
 
   return (
     <div className="pb-10">
@@ -41,6 +46,26 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
             </div>
           </div>
           <div className="flex w-full gap-2.5 sm:w-auto">
+            {buyerId ? (
+              <form action={toggleSaveSupplierAction}>
+                <input type="hidden" name="supplierId" value={supplier.id} />
+                <input type="hidden" name="supplierSlug" value={supplier.slug} />
+                <button
+                  type="submit"
+                  className={buttonClassName({ variant: saved ? "solid" : "outline", size: "sm", full: true })}
+                >
+                  <Icon name="heart" size={16} strokeWidth={2} />
+                  {saved ? "Saved" : "Save"}
+                </button>
+              </form>
+            ) : (
+              <Link
+                href={`/account?next=${encodeURIComponent(`/supplier/${supplier.slug}`)}`}
+                className={buttonClassName({ variant: "outline", size: "sm", full: true })}
+              >
+                <Icon name="heart" size={16} strokeWidth={2} /> Save
+              </Link>
+            )}
             {supplier.phone && (
               <a
                 href={whatsappHref(supplier.phone, `Hi ${supplier.name}, I found your listing on NextGen and I'm interested in your products.`)}
