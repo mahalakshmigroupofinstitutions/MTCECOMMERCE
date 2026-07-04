@@ -55,11 +55,19 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
             <Icon name="check" size={16} strokeWidth={2.4} /> Order placed
           </div>
           <p className="mt-1 text-[13px] text-white/70">
-            You accepted a quote — the order is being set up.{" "}
-            <Link href="/orders" className="underline">
-              Track it here
-            </Link>
-            .
+            You accepted a quote
+            {rfq.orders[0] ? (
+              <>
+                {" "}
+                &mdash;{" "}
+                <Link href={`/orders/${rfq.orders[0].id}`} className="underline">
+                  track your order here
+                </Link>
+                .
+              </>
+            ) : (
+              " — the order is being set up."
+            )}
           </p>
         </div>
       )}

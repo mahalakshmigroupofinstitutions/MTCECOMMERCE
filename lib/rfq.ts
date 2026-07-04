@@ -31,6 +31,7 @@ export async function getRfqWithQuotes(id: string) {
       product: true,
       category: true,
       quotes: { include: { supplier: true }, orderBy: { price: "asc" } },
+      orders: true,
     },
   });
 }

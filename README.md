@@ -36,6 +36,10 @@ Phase 1 (real mobile-OTP auth) hasn't been built yet, but Phase 4 (RFQs) needs t
 
 There's no seller-side app yet, so quotes against an RFQ are entered through an internal, unauthenticated tool at `/rfq/[id]/quotes/new` — acting on a supplier's behalf. It's clearly marked "not for production" in the UI; a real Seller Dashboard phase replaces it.
 
+### Order tracking (stopgap ahead of Razorpay + logistics)
+
+Accepting a quote (`lib/rfq.ts`'s `acceptQuote`) creates an `Order` plus its 5-step `OrderStep` timeline (Confirmed → Payment Received → In Production → Shipped → Delivered), shown at `/orders/[id]`. Advancing between steps normally comes from a Razorpay payment webhook (the "Payment Received" step) and a logistics integration (production/shipping) — neither exists yet, since Razorpay requires you to sign up and share API keys. Until then, `/orders/[id]` has an internal "Advance to next step" button (owner-gated, clearly marked "not for production") that calls the same `advanceOrderStep` function a real webhook handler will call later.
+
 ## Scripts
 
 - `npm run dev` — start the dev server
