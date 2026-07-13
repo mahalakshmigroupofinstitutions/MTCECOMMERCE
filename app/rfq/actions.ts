@@ -20,7 +20,10 @@ export async function identifyAndContinue(formData: FormData) {
   }
 
   await identifyBuyer({
-    phone: digits.startsWith("91") ? `+${digits}` : `+91${digits}`,
+    // 10-digit input is a bare local number (needs +91); anything else is assumed
+    // to already include a country code. `digits.startsWith("91")` was wrong here —
+    // it misfired for any bare 10-digit number that happens to start with "91".
+    phone: digits.length === 10 ? `+91${digits}` : `+${digits}`,
     name: name!,
     companyName: str(formData, "companyName"),
     city: str(formData, "city"),

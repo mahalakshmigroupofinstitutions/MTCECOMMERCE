@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { buttonClassName } from "@/components/ui";
+import { buttonClassName, SubmitButton } from "@/components/ui";
 import { getAllSuppliers } from "@/lib/catalog";
 import { getRfqWithQuotes } from "@/lib/rfq";
 import { submitQuote } from "@/app/rfq/actions";
@@ -100,9 +100,9 @@ export default async function NewQuotePage({
           Mark as recommended
         </label>
 
-        <button type="submit" className={buttonClassName({ full: true, size: "lg" })}>
+        <SubmitButton pendingText="Adding…" className={buttonClassName({ full: true, size: "lg" })}>
           Add quote
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

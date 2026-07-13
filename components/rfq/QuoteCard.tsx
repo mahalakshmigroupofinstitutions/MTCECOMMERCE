@@ -1,5 +1,5 @@
 import { Icon } from "@/components/icons/Icon";
-import { Stars, VerifiedBadge, buttonClassName } from "@/components/ui";
+import { Stars, VerifiedBadge, buttonClassName, SubmitButton } from "@/components/ui";
 import { acceptQuoteAction, rejectQuoteAction } from "@/app/rfq/actions";
 import type { RfqWithQuotes } from "@/lib/rfq";
 
@@ -88,16 +88,19 @@ export function QuoteCard({
           <form action={acceptQuoteAction} className="flex-1">
             <input type="hidden" name="rfqId" value={rfqId} />
             <input type="hidden" name="quoteId" value={quote.id} />
-            <button type="submit" className={buttonClassName({ size: "sm", full: true })}>
+            <SubmitButton pendingText="Accepting…" className={buttonClassName({ size: "sm", full: true })}>
               Accept quote
-            </button>
+            </SubmitButton>
           </form>
           <form action={rejectQuoteAction} className="flex-1">
             <input type="hidden" name="rfqId" value={rfqId} />
             <input type="hidden" name="quoteId" value={quote.id} />
-            <button type="submit" className={buttonClassName({ variant: "outline", size: "sm", full: true })}>
+            <SubmitButton
+              pendingText="Rejecting…"
+              className={buttonClassName({ variant: "outline", size: "sm", full: true })}
+            >
               Reject
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}

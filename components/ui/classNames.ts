@@ -28,7 +28,7 @@ export function buttonClassName({
   full?: boolean;
   className?: string;
 } = {}) {
-  return `inline-flex items-center justify-center gap-2 rounded-2xl font-bold tracking-[0.02em] ${BUTTON_VARIANT_CLASSES[variant]} ${BUTTON_SIZE_CLASSES[size]} ${full ? "w-full" : ""} ${className ?? ""}`;
+  return `inline-flex items-center justify-center gap-2 rounded-2xl font-bold tracking-[0.02em] disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_VARIANT_CLASSES[variant]} ${BUTTON_SIZE_CLASSES[size]} ${full ? "w-full" : ""} ${className ?? ""}`;
 }
 
 export function chipClassName({ active, className }: { active?: boolean; className?: string } = {}) {

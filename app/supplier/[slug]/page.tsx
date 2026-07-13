@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { Metric, Placeholder, Stars, VerifiedBadge, buttonClassName } from "@/components/ui";
+import { Metric, Placeholder, Stars, VerifiedBadge, buttonClassName, SubmitButton } from "@/components/ui";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { Tag } from "@/components/catalog/Tag";
 import { getSupplierBySlug } from "@/lib/catalog";
@@ -50,13 +50,13 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
               <form action={toggleSaveSupplierAction}>
                 <input type="hidden" name="supplierId" value={supplier.id} />
                 <input type="hidden" name="supplierSlug" value={supplier.slug} />
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingText={saved ? "Removing…" : "Saving…"}
                   className={buttonClassName({ variant: saved ? "solid" : "outline", size: "sm", full: true })}
                 >
                   <Icon name="heart" size={16} strokeWidth={2} />
                   {saved ? "Saved" : "Save"}
-                </button>
+                </SubmitButton>
               </form>
             ) : (
               <Link

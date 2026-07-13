@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { buttonClassName } from "@/components/ui";
+import { buttonClassName, SubmitButton } from "@/components/ui";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
 import { SupplierMiniCard } from "@/components/catalog/SupplierMiniCard";
 import { getCurrentBuyerId } from "@/lib/session";
@@ -50,9 +50,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </p>
           <form action={advanceOrderAction} className="mt-3">
             <input type="hidden" name="orderId" value={order.id} />
-            <button type="submit" className={buttonClassName({ variant: "outline", size: "sm" })}>
+            <SubmitButton pendingText="Advancing…" className={buttonClassName({ variant: "outline", size: "sm" })}>
               Advance to next step
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}

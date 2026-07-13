@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { IdentifyForm } from "@/components/rfq/IdentifyForm";
 import { SupplierCard } from "@/components/catalog/SupplierCard";
-import { buttonClassName } from "@/components/ui";
+import { buttonClassName, SubmitButton } from "@/components/ui";
 import { getCurrentBuyerId, getCurrentBuyer } from "@/lib/session";
 import { getSavedSuppliers } from "@/lib/account";
 import { getRfqsForBuyer } from "@/lib/rfq";
@@ -70,9 +70,9 @@ export default async function AccountPage({
               <input name="city" defaultValue={buyer?.city ?? ""} className={inputClass} />
             </div>
           </div>
-          <button type="submit" className={`${buttonClassName({ size: "sm" })} self-start`}>
+          <SubmitButton pendingText="Saving…" className={`${buttonClassName({ size: "sm" })} self-start`}>
             Save changes
-          </button>
+          </SubmitButton>
         </form>
       </div>
 

@@ -2,7 +2,7 @@ import { getCurrentBuyerId } from "@/lib/session";
 import { getCategories, getProductBySlug } from "@/lib/catalog";
 import { submitRfq } from "@/app/rfq/actions";
 import { IdentifyForm } from "@/components/rfq/IdentifyForm";
-import { buttonClassName } from "@/components/ui";
+import { buttonClassName, SubmitButton } from "@/components/ui";
 
 export const revalidate = 0;
 
@@ -95,9 +95,9 @@ export default async function NewRfqPage({
           <input type="date" name="targetDeliveryDate" className={inputClass} />
         </div>
 
-        <button type="submit" className={buttonClassName({ full: true, size: "lg" })}>
+        <SubmitButton pendingText="Submitting…" className={buttonClassName({ full: true, size: "lg" })}>
           Submit RFQ
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

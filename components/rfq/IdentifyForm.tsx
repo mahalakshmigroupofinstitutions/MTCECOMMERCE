@@ -1,5 +1,5 @@
 import { identifyAndContinue } from "@/app/rfq/actions";
-import { buttonClassName } from "@/components/ui";
+import { buttonClassName, SubmitButton } from "@/components/ui";
 
 const inputClass = "w-full rounded-xl border border-line px-3.5 py-3 text-sm text-ink outline-none placeholder:text-faint";
 
@@ -22,9 +22,9 @@ export function IdentifyForm({ next, error }: { next: string; error?: boolean })
         <input name="phone" required type="tel" placeholder="Mobile number" className={inputClass} />
         <input name="companyName" placeholder="Company name (optional)" className={inputClass} />
         <input name="city" placeholder="City (optional)" className={inputClass} />
-        <button type="submit" className={buttonClassName({ full: true })}>
+        <SubmitButton pendingText="Continuing…" className={buttonClassName({ full: true })}>
           Continue
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );
