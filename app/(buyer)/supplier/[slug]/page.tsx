@@ -8,7 +8,7 @@ import { getSupplierBySlug } from "@/lib/catalog";
 import { whatsappHref } from "@/lib/whatsapp";
 import { getCurrentBuyerId } from "@/lib/session";
 import { isSupplierSaved } from "@/lib/account";
-import { toggleSaveSupplierAction } from "@/app/account/actions";
+import { toggleSaveSupplierAction } from "@/app/(buyer)/account/actions";
 
 export const revalidate = 0;
 

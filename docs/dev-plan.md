@@ -140,3 +140,13 @@ Each phase should be demoed on the staging deployment before moving on:
 - Phase 4: submit an RFQ, manually insert competing quotes, confirm compare screen renders and Accept creates a row in `Order`.
 - Phase 5: Razorpay test-mode payment completes, webhook flips `paymentStatus`, order timeline updates.
 - Phase 6/7: chat message round-trips between two test sessions; profile screen reflects saved suppliers and RFQ history for the logged-in buyer.
+
+## Seller Dashboard (Vendor Flow) — shipped
+
+Built ahead of the other "Later Phases" items, since there was no vendor-facing app at all — suppliers were admin-seeded and quotes were entered through an unauthenticated internal tool. This phase replaced both with a real, self-service vendor portal:
+
+- **Vendor auth**: same phone-based stopgap pattern as buyers (`lib/vendorSession.ts`, its own `nx_vendor` cookie so one browser can hold a buyer and a vendor session at once). Logging in with a phone matching an existing seeded `Supplier` logs into that record as-is; a new phone number creates a new, unverified `Supplier`.
+- **RFQ inbox** (`/vendor/rfqs`) — relevance-filtered to RFQs tied to the vendor's own products or categories; submitting a quote (`/vendor/rfqs/[id]`) uses the vendor's own session-derived `supplierId`, closing the spoofing hole the old internal tool had.
+- **Product catalog CRUD** (`/vendor/products`) — vendors add/edit/delete their own listings; specs and bulk price tiers are entered as plain `Key: Value` / `range | price` textareas, parsed server-side into the same JSON shape the buyer-facing product page already renders.
+- **Order fulfillment** (`/vendor/orders`) — the vendor now advances "In Production" → "Shipped" themselves; the buyer-side internal advance control (`/orders/[id]`) is narrowed to only "Payment Received" (Razorpay stopgap) and "Delivered" (buyer confirms receipt).
+- **Architecture**: buyer routes moved into an `app/(buyer)/` route group with their own layout (`AppShell`/buyer header+tab bar), so `/vendor/*` gets a separate, simpler `VendorHeader` instead. No URL changes for existing buyer pages.

@@ -49,7 +49,7 @@ model Supplier {
   responseTime    String?
   deliveryPercent Int      @default(0)
   gstNumber       String?
-  phone           String?
+  phone           String?  @unique
   tags            String[]
   blurb           String?
   createdAt       DateTime @default(now())

@@ -1,6 +1,6 @@
 import { Icon } from "@/components/icons/Icon";
 import { Stars, VerifiedBadge, buttonClassName, SubmitButton } from "@/components/ui";
-import { acceptQuoteAction, rejectQuoteAction } from "@/app/rfq/actions";
+import { acceptQuoteAction, rejectQuoteAction } from "@/app/(buyer)/rfq/actions";
 import type { RfqWithQuotes } from "@/lib/rfq";
 
 const STATUS_STYLE: Record<string, string> = {

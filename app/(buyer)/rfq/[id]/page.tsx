@@ -73,16 +73,9 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
       )}
 
       <div className="mt-7">
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-base font-extrabold text-ink">
-            {rfq.quotes.length === 0 ? "Waiting for quotes" : `Compare quotes · ${rfq.quotes.length}`}
-          </h2>
-          {rfq.status !== "CLOSED" && (
-            <Link href={`/rfq/${rfq.id}/quotes/new`} className="text-[12px] font-bold text-sub">
-              + Add quote (internal)
-            </Link>
-          )}
-        </div>
+        <h2 className="mb-3 text-base font-extrabold text-ink">
+          {rfq.quotes.length === 0 ? "Waiting for quotes" : `Compare quotes · ${rfq.quotes.length}`}
+        </h2>
 
         {rfq.quotes.length === 0 ? (
           <div className="rounded-2xl border border-line p-8 text-center">

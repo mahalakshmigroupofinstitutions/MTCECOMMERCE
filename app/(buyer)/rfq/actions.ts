@@ -2,12 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { identifyBuyer, getCurrentBuyerId } from "@/lib/session";
-import { createRfq, createQuote, acceptQuote, rejectQuote, getRfqWithQuotes } from "@/lib/rfq";
-
-function str(formData: FormData, key: string): string | undefined {
-  const v = formData.get(key);
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
-}
+import { createRfq, acceptQuote, rejectQuote, getRfqWithQuotes } from "@/lib/rfq";
+import { str } from "@/lib/formData";
 
 export async function identifyAndContinue(formData: FormData) {
   const phoneRaw = str(formData, "phone") ?? "";
@@ -51,30 +47,6 @@ export async function submitRfq(formData: FormData) {
   });
 
   redirect(`/rfq/${rfq.id}`);
-}
-
-export async function submitQuote(formData: FormData) {
-  const rfqId = str(formData, "rfqId");
-  const supplierId = str(formData, "supplierId");
-  const priceRaw = str(formData, "price");
-  if (!rfqId || !supplierId || !priceRaw) redirect(`/rfq/${rfqId}/quotes/new?error=1`);
-
-  const validUntilRaw = str(formData, "validUntil");
-
-  await createQuote({
-    rfqId: rfqId!,
-    supplierId: supplierId!,
-    price: Math.round(Number(priceRaw)),
-    unit: str(formData, "unit") ?? "unit",
-    moq: str(formData, "moq"),
-    delivery: str(formData, "delivery"),
-    payment: str(formData, "payment"),
-    validUntil: validUntilRaw ? new Date(validUntilRaw) : undefined,
-    note: str(formData, "note"),
-    best: formData.get("best") === "on",
-  });
-
-  redirect(`/rfq/${rfqId}`);
 }
 
 async function assertOwnsRfq(rfqId: string) {

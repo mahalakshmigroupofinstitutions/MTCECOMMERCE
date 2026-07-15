@@ -1,27 +1,30 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
-import { SupplierMiniCard } from "@/components/catalog/SupplierMiniCard";
-import { getCurrentBuyerId } from "@/lib/session";
-import { getOrderById } from "@/lib/orders";
-import { advanceOrderAction } from "@/app/orders/actions";
+import { getCurrentSupplierId } from "@/lib/vendorSession";
+import { getVendorOrderById } from "@/lib/vendor";
+import { advanceVendorOrderStep } from "@/app/vendor/actions";
 
 export const revalidate = 0;
 
-export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function VendorOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [order, buyerId] = await Promise.all([getOrderById(id), getCurrentBuyerId()]);
+  const supplierId = await getCurrentSupplierId();
+  if (!supplierId) redirect(`/vendor/login?next=/vendor/orders/${id}`);
+
+  const order = await getVendorOrderById(id, supplierId);
   if (!order) notFound();
 
-  const isOwner = buyerId === order.buyerId;
+  const activeKey = order.steps.find((s) => s.active)?.key;
+  const canAdvance = activeKey === "production" || activeKey === "shipped";
   const isDelivered = order.status === "DELIVERED";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6 md:py-8">
       <div className="mb-1 text-[12.5px] text-sub">
-        <Link href="/orders">My Orders</Link>
+        <Link href="/vendor/orders">Orders</Link>
       </div>
       <h1 className="text-lg font-extrabold text-ink">{order.product?.title ?? "Order"}</h1>
       <div className="mt-2 text-[13px] text-sub">
@@ -42,24 +45,26 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <OrderTimeline steps={order.steps} />
       </div>
 
-      {isOwner && !isDelivered && (
+      {canAdvance && (
         <div className="mt-2 rounded-2xl border border-line p-4">
           <p className="text-[12px] text-sub">
-            <b className="text-ink">Internal control, not for production.</b> Stands in for Razorpay&rsquo;s payment
-            webhook and a logistics integration until those exist.
+            Payment confirmation and delivery confirmation are handled elsewhere — you control production and shipping.
           </p>
-          <form action={advanceOrderAction} className="mt-3">
+          <form action={advanceVendorOrderStep} className="mt-3">
             <input type="hidden" name="orderId" value={order.id} />
             <SubmitButton pendingText="Advancing…" className={buttonClassName({ variant: "outline", size: "sm" })}>
-              Advance to next step
+              {activeKey === "production" ? "Mark production complete" : "Mark as shipped"}
             </SubmitButton>
           </form>
         </div>
       )}
 
       <div className="mt-7">
-        <h2 className="mb-3 text-base font-extrabold text-ink">Supplier</h2>
-        <SupplierMiniCard supplier={order.supplier} />
+        <h2 className="mb-3 text-base font-extrabold text-ink">Buyer</h2>
+        <div className="rounded-2xl border border-line p-4">
+          <div className="font-bold text-ink">{order.buyer.companyName ?? order.buyer.name ?? "Buyer"}</div>
+          {order.buyer.city && <div className="mt-1 text-[12.5px] text-sub">{order.buyer.city}</div>}
+        </div>
       </div>
     </div>
   );

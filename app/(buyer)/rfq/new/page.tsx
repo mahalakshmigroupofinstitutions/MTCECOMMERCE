@@ -1,6 +1,6 @@
 import { getCurrentBuyerId } from "@/lib/session";
 import { getCategories, getProductBySlug } from "@/lib/catalog";
-import { submitRfq } from "@/app/rfq/actions";
+import { submitRfq } from "@/app/(buyer)/rfq/actions";
 import { IdentifyForm } from "@/components/rfq/IdentifyForm";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 

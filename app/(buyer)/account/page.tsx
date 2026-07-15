@@ -5,7 +5,7 @@ import { buttonClassName, SubmitButton } from "@/components/ui";
 import { getCurrentBuyerId, getCurrentBuyer } from "@/lib/session";
 import { getSavedSuppliers } from "@/lib/account";
 import { getRfqsForBuyer } from "@/lib/rfq";
-import { updateProfile } from "@/app/account/actions";
+import { updateProfile } from "@/app/(buyer)/account/actions";
 
 export const revalidate = 0;
 
@@ -120,6 +120,13 @@ export default async function AccountPage({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-line p-4 text-center text-[13px] text-sub">
+        Are you a supplier?{" "}
+        <Link href="/vendor" className="font-bold text-ink underline">
+          Log in to your vendor dashboard
+        </Link>
       </div>
     </div>
   );

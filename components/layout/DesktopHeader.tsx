@@ -50,6 +50,9 @@ export function DesktopHeader() {
             <Icon name="bell" size={18} />
             <span className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-ink" />
           </button>
+          <Link href="/vendor" className="rounded-lg px-3 py-2 text-[13.5px] font-semibold text-sub">
+            Sell on NextGen
+          </Link>
           <div className="mx-1.5 h-6.5 w-px bg-line" />
           <Link href="/rfq/new" className={buttonClassName({ size: "sm" })}>
             <Icon name="plus" size={18} strokeWidth={2} />

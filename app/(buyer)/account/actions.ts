@@ -3,11 +3,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentBuyerId } from "@/lib/session";
 import { updateBuyerProfile, toggleSavedSupplier } from "@/lib/account";
-
-function str(formData: FormData, key: string): string | undefined {
-  const v = formData.get(key);
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
-}
+import { str } from "@/lib/formData";
 
 export async function updateProfile(formData: FormData) {
   const buyerId = await getCurrentBuyerId();

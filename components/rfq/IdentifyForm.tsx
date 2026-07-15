@@ -1,4 +1,4 @@
-import { identifyAndContinue } from "@/app/rfq/actions";
+import { identifyAndContinue } from "@/app/(buyer)/rfq/actions";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 
 const inputClass = "w-full rounded-xl border border-line px-3.5 py-3 text-sm text-ink outline-none placeholder:text-faint";
