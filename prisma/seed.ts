@@ -35,6 +35,7 @@ const SUPPLIERS = [
     tags: ["Manufacturer", "GST Verified", "TrustSEAL"],
     blurb:
       "ISO 9001 certified manufacturer of TMT bars, MS angles & structural steel. Serving infra & construction since 2011.",
+    imageUrl: "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&q=80",
   },
   {
     slug: "surat",
@@ -50,6 +51,7 @@ const SUPPLIERS = [
     phone: "+919825010002",
     tags: ["Manufacturer", "GST Verified", "Export House"],
     blurb: "Greige & dyed cotton fabric mill. 40,000 m/day capacity, exporting to 14 countries.",
+    imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
   },
   {
     slug: "rajdhani",
@@ -65,6 +67,7 @@ const SUPPLIERS = [
     phone: "+919825010003",
     tags: ["Manufacturer", "GST Verified"],
     blurb: "Corrugated boxes, mono cartons & protective packaging. FSC-certified board.",
+    imageUrl: "https://images.unsplash.com/photo-1607166452427-7e4477079cb9?w=800&q=80",
   },
   {
     slug: "vega",
@@ -80,6 +83,7 @@ const SUPPLIERS = [
     phone: "+919825010004",
     tags: ["Manufacturer", "GST Verified"],
     blurb: "Re-rolling mill specialising in Fe-500D & Fe-550D TMT bars and MS structurals.",
+    imageUrl: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80",
   },
   {
     slug: "deccan",
@@ -95,6 +99,7 @@ const SUPPLIERS = [
     phone: "+919825010005",
     tags: ["Trader", "GST Verified"],
     blurb: "Authorised distributor for leading TMT & structural steel brands across South India.",
+    imageUrl: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&q=80",
   },
 ];
 
@@ -125,6 +130,7 @@ const PRODUCTS = [
     ],
     description:
       "High-strength earthquake-resistant TMT rebars. Uniform ribbing for superior bonding with concrete. Mill test certificate provided with every dispatch.",
+    imageUrl: "https://images.unsplash.com/photo-1590247813693-5541d1c609fd?w=800&q=80",
   },
   {
     slug: "tmt-16mm",
@@ -151,6 +157,7 @@ const PRODUCTS = [
       ["200+ tons", "₹51,200 /ton"],
     ],
     description: "Re-rolled Fe-500D TMT bars ex-works Bhavnagar, suited for RCC framed structures.",
+    imageUrl: "https://images.unsplash.com/photo-1610478920392-95888b4b1a9b?w=800&q=80",
   },
   {
     slug: "tmt-8mm",
@@ -176,6 +183,7 @@ const PRODUCTS = [
       ["50+ tons", "₹54,300 /ton"],
     ],
     description: "Branded Fe-550D TMT bars, limited sizes, distributed across South India.",
+    imageUrl: "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=800&q=80",
   },
   {
     slug: "tmt-20mm",
@@ -202,6 +210,7 @@ const PRODUCTS = [
       ["100+ tons", "₹50,600 /ton"],
     ],
     description: "Heavier-gauge Fe-500D TMT bars for columns & heavy structural members.",
+    imageUrl: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
   },
   {
     slug: "cotton-greige-40x40",
@@ -229,6 +238,7 @@ const PRODUCTS = [
     ],
     description:
       "Loom-state greige cotton fabric, ready for dyeing & finishing. Consistent count and shrinkage, suitable for shirting and home textiles.",
+    imageUrl: "https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=800&q=80",
   },
   {
     slug: "corrugated-boxes-5ply",
@@ -256,6 +266,7 @@ const PRODUCTS = [
     ],
     description:
       "Heavy-duty 5-ply corrugated boxes for e-commerce and industrial shipping. Edge-crush tested, customisable dimensions and branding.",
+    imageUrl: "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?w=800&q=80",
   },
 ];
 

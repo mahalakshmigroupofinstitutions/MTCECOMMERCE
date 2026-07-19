@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { Placeholder, Stars, buttonClassName } from "@/components/ui";
+import { CatalogImage, Placeholder, Stars, buttonClassName } from "@/components/ui";
 import { PriceTiers } from "@/components/catalog/PriceTiers";
 import { SpecsTable } from "@/components/catalog/SpecsTable";
 import { SupplierMiniCard } from "@/components/catalog/SupplierMiniCard";
@@ -27,7 +27,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       <div className="flex flex-col gap-8 md:flex-row">
         <div className="md:w-[420px] md:flex-shrink-0">
-          <Placeholder label={product.title} height={280} />
+          <CatalogImage
+            src={product.imageUrl}
+            label={product.title}
+            height={280}
+            sizes="(max-width: 768px) 100vw, 420px"
+          />
           <div className="mt-2.5 flex gap-2">
             {[0, 1, 2, 3].map((i) => (
               <Placeholder key={i} label="" height={64} className={`flex-1 ${i === 0 ? "" : "opacity-50"}`} />

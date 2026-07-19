@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { Metric, Placeholder, Stars, VerifiedBadge, buttonClassName, SubmitButton } from "@/components/ui";
+import { Metric, CatalogImage, Stars, VerifiedBadge, buttonClassName, SubmitButton } from "@/components/ui";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { Tag } from "@/components/catalog/Tag";
 import { getSupplierBySlug } from "@/lib/catalog";
@@ -23,7 +23,13 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="pb-10">
-      <Placeholder label={`${supplier.name} · Facility`} height={180} rounded={false} />
+      <CatalogImage
+        src={supplier.imageUrl}
+        label={`${supplier.name} · Facility`}
+        height={180}
+        rounded={false}
+        sizes="100vw"
+      />
 
       <div className="mx-auto max-w-6xl px-6">
         <div className="-mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:gap-5">

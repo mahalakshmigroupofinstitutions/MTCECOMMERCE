@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons/Icon";
-import { Placeholder } from "@/components/ui";
+import { CatalogImage, cardHoverClassName } from "@/components/ui";
 import type { ProductWithRelations } from "@/lib/catalog";
 
 export function ProductRow({ product }: { product: ProductWithRelations }) {
   return (
-    <Link href={`/product/${product.slug}`} className="flex items-stretch gap-3 rounded-2xl border border-line p-3">
-      <Placeholder label={product.title} height={86} className="w-[86px] flex-shrink-0" />
+    <Link
+      href={`/product/${product.slug}`}
+      className={`group flex items-stretch gap-3 rounded-2xl border border-line p-3 ${cardHoverClassName}`}
+    >
+      <CatalogImage
+        src={product.imageUrl}
+        label={product.title}
+        height={86}
+        sizes="86px"
+        className="w-[86px] flex-shrink-0"
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="text-[13.5px] leading-tight font-bold text-ink">{product.title}</div>
         <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-sub">

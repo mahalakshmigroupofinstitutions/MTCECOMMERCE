@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons/Icon";
-import { Placeholder } from "@/components/ui";
+import { CatalogImage, cardHoverClassName } from "@/components/ui";
 import type { ProductWithRelations } from "@/lib/catalog";
 
 export function ProductCard({ product }: { product: ProductWithRelations }) {
   return (
-    <Link href={`/product/${product.slug}`} className="flex flex-col gap-2 rounded-2xl border border-line p-2.5">
-      <Placeholder label={product.title} height={110} />
+    <Link
+      href={`/product/${product.slug}`}
+      className={`group flex flex-col gap-2 rounded-2xl border border-line p-2.5 ${cardHoverClassName}`}
+    >
+      <CatalogImage src={product.imageUrl} label={product.title} height={110} />
       <div className="text-[12.5px] leading-tight font-bold text-ink">{product.title}</div>
       <div className="font-mono text-sm font-extrabold text-ink">
         ₹{product.price.toLocaleString("en-IN")}

@@ -16,6 +16,15 @@ export async function getFeaturedSuppliers(limit = 4) {
   });
 }
 
+export async function getCatalogStats() {
+  const [categories, suppliers, products] = await Promise.all([
+    prisma.category.count(),
+    prisma.supplier.count(),
+    prisma.product.count(),
+  ]);
+  return { categories, suppliers, products };
+}
+
 export async function getAllSuppliers() {
   return prisma.supplier.findMany({ orderBy: { name: "asc" } });
 }

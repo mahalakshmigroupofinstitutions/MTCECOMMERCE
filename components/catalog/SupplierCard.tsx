@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons/Icon";
-import { Placeholder, Stars, VerifiedBadge } from "@/components/ui";
+import { CatalogImage, Stars, VerifiedBadge, cardHoverClassName } from "@/components/ui";
 import type { SupplierRow } from "@/lib/catalog";
 
 export function SupplierCard({ supplier }: { supplier: SupplierRow }) {
   return (
     <Link
       href={`/supplier/${supplier.slug}`}
-      className="flex w-[250px] flex-shrink-0 flex-col gap-2.5 rounded-2xl border border-line p-3.5 sm:w-auto"
+      className={`group flex w-[250px] flex-shrink-0 flex-col gap-2.5 rounded-2xl border border-line p-3.5 sm:w-auto ${cardHoverClassName}`}
     >
-      <Placeholder label={supplier.name} height={92} />
+      <CatalogImage src={supplier.imageUrl} label={supplier.name} height={92} />
       <div className="flex items-center justify-between gap-1.5">
         <span className="truncate text-[13.5px] font-extrabold text-ink">{supplier.name}</span>
         <VerifiedBadge show={supplier.verified} small />
