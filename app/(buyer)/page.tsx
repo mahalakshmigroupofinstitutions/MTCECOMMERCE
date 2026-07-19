@@ -17,23 +17,23 @@ export default async function Home() {
 
   return (
     <div>
-      <div className="bg-ink text-white">
+      <div className="border-b border-line bg-gradient-to-br from-wash via-paper to-[#FCEEE4]">
         <div className="mx-auto max-w-6xl px-6 py-10 md:py-16">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[11.5px] font-bold tracking-wide">
-            <Icon name="shield" size={14} /> 100% GST-verified suppliers across India
+          <div className="inline-flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[11.5px] font-bold tracking-wide text-ink shadow-sm">
+            <Icon name="shield" size={14} className="text-accent" /> 100% GST-verified suppliers across India
           </div>
-          <h1 className="mt-5 max-w-xl text-3xl leading-[1.1] font-extrabold tracking-tight md:text-[2.75rem]">
-            Source smarter. Get bulk quotes in minutes.
+          <h1 className="mt-5 max-w-xl text-3xl leading-[1.1] font-extrabold tracking-tight text-ink md:text-[2.75rem]">
+            Source smarter. Get bulk quotes in <span className="text-accent">minutes</span>.
           </h1>
-          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-white/70">
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-sub">
             Compare verified manufacturers, send one RFQ, and let suppliers compete for your order.
           </p>
 
           <Link
             href="/search"
-            className="mt-7 flex max-w-lg items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-sub shadow-lg shadow-black/20 transition-transform duration-150 hover:-translate-y-0.5"
+            className="mt-7 flex max-w-lg items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3.5 text-sub shadow-lg shadow-ink/[0.06] transition-all duration-150 hover:-translate-y-0.5 hover:border-ink/25 hover:shadow-ink/[0.12]"
           >
-            <Icon name="search" size={19} className="text-ink" />
+            <Icon name="search" size={19} className="text-accent" />
             <span className="text-sm">Search products or suppliers&hellip;</span>
           </Link>
 
@@ -44,8 +44,8 @@ export default async function Home() {
               { value: stats.products, label: "Products" },
             ].map((s) => (
               <div key={s.label}>
-                <div className="font-mono text-2xl font-extrabold">{s.value}</div>
-                <div className="mt-0.5 text-[12px] text-white/60">{s.label}</div>
+                <div className="font-mono text-2xl font-extrabold text-ink">{s.value}</div>
+                <div className="mt-0.5 text-[12px] text-sub">{s.label}</div>
               </div>
             ))}
           </div>
@@ -91,10 +91,10 @@ export default async function Home() {
 
         <Link
           href="/rfq/new"
-          className="mb-10 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-ink to-[#232220] p-5 text-white transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-ink/20"
+          className="mb-10 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-accent to-[#c2410c] p-5 text-white transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-accent/25"
         >
           <div className="flex-1">
-            <div className="text-[10.5px] font-extrabold tracking-[0.14em] text-white/60 uppercase">
+            <div className="text-[10.5px] font-extrabold tracking-[0.14em] text-white/70 uppercase">
               One request · many quotes
             </div>
             <div className="mt-1.5 text-lg leading-snug font-extrabold">

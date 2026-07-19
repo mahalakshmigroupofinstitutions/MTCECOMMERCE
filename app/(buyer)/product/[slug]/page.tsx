@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { CatalogImage, Placeholder, Stars, buttonClassName } from "@/components/ui";
+import { CatalogImage, Stars, buttonClassName } from "@/components/ui";
 import { PriceTiers } from "@/components/catalog/PriceTiers";
 import { SpecsTable } from "@/components/catalog/SpecsTable";
 import { SupplierMiniCard } from "@/components/catalog/SupplierMiniCard";
@@ -26,18 +26,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       <div className="flex flex-col gap-8 md:flex-row">
-        <div className="md:w-[420px] md:flex-shrink-0">
+        <div className="group md:w-[420px] md:flex-shrink-0">
           <CatalogImage
             src={product.imageUrl}
             label={product.title}
-            height={280}
+            height={400}
             sizes="(max-width: 768px) 100vw, 420px"
           />
-          <div className="mt-2.5 flex gap-2">
-            {[0, 1, 2, 3].map((i) => (
-              <Placeholder key={i} label="" height={64} className={`flex-1 ${i === 0 ? "" : "opacity-50"}`} />
-            ))}
-          </div>
         </div>
 
         <div className="min-w-0 flex-1">
@@ -107,7 +102,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         {product.description && (
           <div>
             <h2 className="mb-3 text-base font-extrabold text-ink">Description</h2>
-            <p className="text-[13.5px] leading-relaxed text-sub">{product.description}</p>
+            <div className="rounded-2xl border border-line bg-wash p-4">
+              <p className="text-[13.5px] leading-relaxed text-sub">{product.description}</p>
+            </div>
           </div>
         )}
       </div>

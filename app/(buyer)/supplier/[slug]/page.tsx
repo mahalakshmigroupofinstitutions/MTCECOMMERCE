@@ -32,8 +32,8 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
       />
 
       <div className="mx-auto max-w-6xl px-6">
-        <div className="-mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:gap-5">
-          <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl border-4 border-paper bg-ink text-3xl font-extrabold text-white">
+        <div className="flex flex-col items-start gap-4 pt-5 sm:flex-row sm:items-center sm:gap-5">
+          <div className="-mt-14 flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl border-4 border-paper bg-ink text-3xl font-extrabold text-white shadow-sm sm:-mt-16">
             {supplier.name[0]}
           </div>
           <div className="min-w-0 flex-1">

@@ -3,7 +3,7 @@ import { Icon } from "@/components/icons/Icon";
 import { chipClassName } from "@/components/ui";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { ProductRow } from "@/components/catalog/ProductRow";
-import { getCategories, getDistinctCities, searchProducts, type ProductSort } from "@/lib/catalog";
+import { getCategories, getDistinctCities, getSearchFacets, searchProducts, type ProductSort } from "@/lib/catalog";
 import { buildSearchHref, type SearchParamsRecord } from "@/lib/searchParams";
 
 export const revalidate = 0;
@@ -25,11 +25,29 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const sort = (typeof sp.sort === "string" ? sp.sort : "best") as ProductSort;
   const view = sp.view === "list" ? "list" : "grid";
 
-  const [categories, cities, { products, total }] = await Promise.all([
+  const [categories, cities, facets, { products, total }] = await Promise.all([
     getCategories(),
     getDistinctCities(),
+    getSearchFacets(),
     searchProducts({ q: q || undefined, category, verifiedOnly, city, minPrice, maxPrice, sort }),
   ]);
+
+  const filtersActive =
+    Boolean(category) || verifiedOnly || Boolean(city) || minPrice !== undefined || maxPrice !== undefined;
+  const clearFiltersHref = buildSearchHref(sp, {
+    category: undefined,
+    verified: undefined,
+    city: undefined,
+    minPrice: undefined,
+    maxPrice: undefined,
+  });
+  const rowClass = (active: boolean) =>
+    `flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold transition-colors ${
+      active ? "bg-ink text-white" : "text-ink hover:bg-wash"
+    }`;
+  const countClass = (active: boolean) =>
+    `font-mono text-[11px] ${active ? "text-white/60" : "text-faint"}`;
+  const sectionLabelClass = "mb-1.5 px-1 text-[11px] font-extrabold tracking-wide text-faint uppercase";
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6 md:py-8">
@@ -53,80 +71,104 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       </form>
 
       <div className="flex flex-col gap-6 md:flex-row">
-        <aside className="flex flex-shrink-0 flex-col gap-5 md:w-56">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[13px] font-extrabold text-ink">Category</span>
-              {category && (
-                <Link href={buildSearchHref(sp, { category: undefined })} className="text-[11.5px] font-bold text-sub">
-                  Clear
+        <aside className="flex-shrink-0 md:w-60">
+          <div className="overflow-hidden rounded-2xl border border-line md:sticky md:top-20">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3">
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
+                <Icon name="filter" size={15} /> Filters
+              </span>
+              {filtersActive && (
+                <Link href={clearFiltersHref} className="text-[11.5px] font-bold text-accent hover:underline">
+                  Clear all
                 </Link>
               )}
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {categories.map((c) => (
-                <Link
-                  key={c.id}
-                  href={buildSearchHref(sp, { category: category === c.slug ? undefined : c.slug })}
-                  className={chipClassName({ active: category === c.slug })}
-                >
-                  {c.name}
-                </Link>
-              ))}
-            </div>
-          </div>
 
-          <div>
-            <span className="mb-2 block text-[13px] font-extrabold text-ink">Trust</span>
-            <Link
-              href={buildSearchHref(sp, { verified: verifiedOnly ? undefined : "1" })}
-              className={chipClassName({ active: verifiedOnly })}
-            >
-              <Icon name="verified" size={14} /> Verified only
-            </Link>
-          </div>
-
-          <div>
-            <span className="mb-2 block text-[13px] font-extrabold text-ink">Location</span>
-            <div className="flex flex-wrap gap-1.5">
-              {cities.map((c) => (
-                <Link
-                  key={c}
-                  href={buildSearchHref(sp, { city: city === c ? undefined : c })}
-                  className={chipClassName({ active: city === c })}
-                >
-                  {c.split(",")[0]}
-                </Link>
-              ))}
+            <div className="border-b border-line p-3">
+              <span className={`block ${sectionLabelClass}`}>Category</span>
+              <div className="flex flex-col gap-0.5">
+                {categories.map((c) => {
+                  const active = category === c.slug;
+                  return (
+                    <Link
+                      key={c.id}
+                      href={buildSearchHref(sp, { category: active ? undefined : c.slug })}
+                      className={rowClass(active)}
+                    >
+                      <span className="truncate">{c.name}</span>
+                      <span className={countClass(active)}>{facets.byCategory.get(c.id) ?? 0}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <form action="/search" className="flex flex-col gap-2">
-            <span className="text-[13px] font-extrabold text-ink">Price range</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                name="minPrice"
-                defaultValue={minPrice ?? ""}
-                placeholder="Min"
-                className="w-full rounded-lg border border-line px-2.5 py-2 font-mono text-[12.5px]"
-              />
-              <input
-                type="number"
-                name="maxPrice"
-                defaultValue={maxPrice ?? ""}
-                placeholder="Max"
-                className="w-full rounded-lg border border-line px-2.5 py-2 font-mono text-[12.5px]"
-              />
+            <div className="border-b border-line p-3">
+              <span className={`block ${sectionLabelClass}`}>Trust</span>
+              <Link
+                href={buildSearchHref(sp, { verified: verifiedOnly ? undefined : "1" })}
+                className={rowClass(verifiedOnly)}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon name="verified" size={15} /> Verified only
+                </span>
+                {verifiedOnly && <Icon name="check" size={15} />}
+              </Link>
             </div>
-            {q && <input type="hidden" name="q" value={q} />}
-            {category && <input type="hidden" name="category" value={category} />}
-            {verifiedOnly && <input type="hidden" name="verified" value="1" />}
-            {city && <input type="hidden" name="city" value={city} />}
-            <button type="submit" className={chipClassName()}>
-              Apply
-            </button>
-          </form>
+
+            <div className="border-b border-line p-3">
+              <span className={`block ${sectionLabelClass}`}>Location</span>
+              <div className="flex flex-col gap-0.5">
+                {cities.map((c) => {
+                  const active = city === c;
+                  return (
+                    <Link
+                      key={c}
+                      href={buildSearchHref(sp, { city: active ? undefined : c })}
+                      className={rowClass(active)}
+                    >
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Icon name="pin" size={14} className={active ? "text-white/70" : "text-faint"} />
+                        <span className="truncate">{c.split(",")[0]}</span>
+                      </span>
+                      <span className={countClass(active)}>{facets.byCity.get(c) ?? 0}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <form action="/search" className="p-3">
+              <span className={`block ${sectionLabelClass}`}>Price range (₹)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  name="minPrice"
+                  defaultValue={minPrice ?? ""}
+                  placeholder="Min"
+                  className="w-full rounded-lg border border-line px-2.5 py-2 font-mono text-[12.5px] outline-none focus:border-ink"
+                />
+                <span className="text-faint">&ndash;</span>
+                <input
+                  type="number"
+                  name="maxPrice"
+                  defaultValue={maxPrice ?? ""}
+                  placeholder="Max"
+                  className="w-full rounded-lg border border-line px-2.5 py-2 font-mono text-[12.5px] outline-none focus:border-ink"
+                />
+              </div>
+              {q && <input type="hidden" name="q" value={q} />}
+              {category && <input type="hidden" name="category" value={category} />}
+              {verifiedOnly && <input type="hidden" name="verified" value="1" />}
+              {city && <input type="hidden" name="city" value={city} />}
+              <button
+                type="submit"
+                className="mt-2.5 w-full rounded-lg bg-ink py-2 text-[13px] font-bold text-white transition-colors hover:brightness-125"
+              >
+                Apply
+              </button>
+            </form>
+          </div>
         </aside>
 
         <div className="min-w-0 flex-1">

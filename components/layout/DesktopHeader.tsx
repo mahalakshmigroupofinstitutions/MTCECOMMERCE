@@ -25,13 +25,11 @@ export function DesktopHeader() {
 
         <Link
           href="/search"
-          className="flex max-w-xl flex-1 items-center gap-2.5 rounded-xl border border-line bg-wash px-3.5 py-2.5 text-sub"
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-wash px-4 py-2.5 text-sub transition-colors hover:border-ink/25 hover:bg-paper"
         >
-          <Icon name="search" size={19} className="text-ink" />
-          <span className="flex-1 text-left text-sm">Search products, suppliers, categories&hellip;</span>
+          <Icon name="search" size={18} className="flex-shrink-0 text-faint" />
+          <span className="truncate text-left text-[13.5px]">Search products, suppliers, categories&hellip;</span>
         </Link>
-
-        <div className="flex-1" />
 
         <nav className="flex items-center gap-1">
           {NAV_LINKS.map((link) => (

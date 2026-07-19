@@ -86,6 +86,20 @@ export async function searchProducts(filters: ProductSearchFilters) {
   return { products, total };
 }
 
+/** Product counts per category id and per supplier city, for the search filter sidebar. */
+export async function getSearchFacets() {
+  const products = await prisma.product.findMany({
+    select: { categoryId: true, supplier: { select: { city: true } } },
+  });
+  const byCategory = new Map<string, number>();
+  const byCity = new Map<string, number>();
+  for (const p of products) {
+    byCategory.set(p.categoryId, (byCategory.get(p.categoryId) ?? 0) + 1);
+    byCity.set(p.supplier.city, (byCity.get(p.supplier.city) ?? 0) + 1);
+  }
+  return { byCategory, byCity };
+}
+
 export async function getDistinctCities() {
   const suppliers = await prisma.supplier.findMany({
     select: { city: true },

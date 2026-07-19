@@ -157,7 +157,7 @@ const PRODUCTS = [
       ["200+ tons", "₹51,200 /ton"],
     ],
     description: "Re-rolled Fe-500D TMT bars ex-works Bhavnagar, suited for RCC framed structures.",
-    imageUrl: "https://images.unsplash.com/photo-1610478920392-95888b4b1a9b?w=800&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1533558701576-23c65e0272fb?w=800&q=80",
   },
   {
     slug: "tmt-8mm",
