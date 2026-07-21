@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { href: "/orders", label: "Orders", icon: "box" as const },
 ];
 
-export function DesktopHeader() {
+export function DesktopHeader({ authed }: { authed: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -56,13 +56,24 @@ export function DesktopHeader() {
             <Icon name="plus" size={18} strokeWidth={2} />
             Post RFQ
           </Link>
-          <Link
-            href="/account"
-            className="ml-1.5 flex h-8.5 w-8.5 items-center justify-center rounded-full border border-line bg-wash text-ink"
-            aria-label="Account"
-          >
-            <Icon name="user" size={18} />
-          </Link>
+          {authed ? (
+            <Link
+              href="/account"
+              className="ml-1.5 flex h-8.5 w-8.5 items-center justify-center rounded-full border border-line bg-wash text-ink"
+              aria-label="Account"
+            >
+              <Icon name="user" size={18} />
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="ml-1.5 rounded-lg px-3 py-2 text-[13.5px] font-semibold text-ink">
+                Log in
+              </Link>
+              <Link href="/register" className={buttonClassName({ variant: "outline", size: "sm" })}>
+                Register
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

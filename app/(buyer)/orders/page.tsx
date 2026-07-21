@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IdentifyForm } from "@/components/rfq/IdentifyForm";
+import { redirect } from "next/navigation";
 import { getCurrentBuyerId } from "@/lib/session";
 import { getOrdersForBuyer } from "@/lib/orders";
 
@@ -13,16 +13,11 @@ const STATUS_LABEL: Record<string, string> = {
   DELIVERED: "Delivered",
 };
 
-export default async function OrdersListPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function OrdersListPage() {
   const buyerId = await getCurrentBuyerId();
 
   if (!buyerId) {
-    return (
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <IdentifyForm next="/orders" error={error === "identify"} />
-      </div>
-    );
+    redirect(`/login?next=${encodeURIComponent("/orders")}`);
   }
 
   const orders = await getOrdersForBuyer(buyerId);

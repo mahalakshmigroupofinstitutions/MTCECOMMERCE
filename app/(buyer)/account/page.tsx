@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { IdentifyForm } from "@/components/rfq/IdentifyForm";
+import { redirect } from "next/navigation";
 import { SupplierCard } from "@/components/catalog/SupplierCard";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 import { getCurrentBuyerId, getCurrentBuyer } from "@/lib/session";
 import { getSavedSuppliers } from "@/lib/account";
 import { getRfqsForBuyer } from "@/lib/rfq";
-import { updateProfile } from "@/app/(buyer)/account/actions";
+import { updateProfile, logoutBuyer } from "@/app/(buyer)/account/actions";
 
 export const revalidate = 0;
 
@@ -22,15 +22,11 @@ export default async function AccountPage({
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next } = await searchParams;
   const buyerId = await getCurrentBuyerId();
 
   if (!buyerId) {
-    return (
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <IdentifyForm next={next ?? "/account"} error={error === "identify"} />
-      </div>
-    );
+    redirect(`/login?next=${encodeURIComponent(next ?? "/account")}`);
   }
 
   const [buyer, savedSuppliers, rfqs] = await Promise.all([
@@ -41,7 +37,14 @@ export default async function AccountPage({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6 md:py-8">
-      <h1 className="mb-5 text-lg font-extrabold text-ink">Account</h1>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h1 className="text-lg font-extrabold text-ink">Account</h1>
+        <form action={logoutBuyer}>
+          <SubmitButton pendingText="Logging out…" className={buttonClassName({ variant: "outline", size: "sm" })}>
+            Log out
+          </SubmitButton>
+        </form>
+      </div>
 
       <div className="rounded-2xl border border-line p-5">
         <h2 className="mb-4 text-[15px] font-extrabold text-ink">Profile</h2>

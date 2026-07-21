@@ -1,32 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { identifyBuyer, getCurrentBuyerId } from "@/lib/session";
+import { getCurrentBuyerId } from "@/lib/session";
 import { createRfq, acceptQuote, rejectQuote, getRfqWithQuotes } from "@/lib/rfq";
 import { str } from "@/lib/formData";
-
-export async function identifyAndContinue(formData: FormData) {
-  const phoneRaw = str(formData, "phone") ?? "";
-  const digits = phoneRaw.replace(/\D/g, "");
-  const name = str(formData, "name");
-  const next = str(formData, "next") ?? "/rfq";
-
-  if (digits.length < 8 || !name) {
-    redirect(`${next.includes("?") ? next + "&" : next + "?"}error=identify`);
-  }
-
-  await identifyBuyer({
-    // 10-digit input is a bare local number (needs +91); anything else is assumed
-    // to already include a country code. `digits.startsWith("91")` was wrong here —
-    // it misfired for any bare 10-digit number that happens to start with "91".
-    phone: digits.length === 10 ? `+91${digits}` : `+${digits}`,
-    name: name!,
-    companyName: str(formData, "companyName"),
-    city: str(formData, "city"),
-  });
-
-  redirect(next);
-}
 
 export async function submitRfq(formData: FormData) {
   const buyerId = await getCurrentBuyerId();

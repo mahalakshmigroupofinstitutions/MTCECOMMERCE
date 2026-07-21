@@ -66,7 +66,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
               </form>
             ) : (
               <Link
-                href={`/account?next=${encodeURIComponent(`/supplier/${supplier.slug}`)}`}
+                href={`/login?next=${encodeURIComponent(`/supplier/${supplier.slug}`)}`}
                 className={buttonClassName({ variant: "outline", size: "sm", full: true })}
               >
                 <Icon name="heart" size={16} strokeWidth={2} /> Save

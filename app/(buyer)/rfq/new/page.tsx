@@ -1,7 +1,7 @@
+import { redirect } from "next/navigation";
 import { getCurrentBuyerId } from "@/lib/session";
 import { getCategories, getProductBySlug } from "@/lib/catalog";
 import { submitRfq } from "@/app/(buyer)/rfq/actions";
-import { IdentifyForm } from "@/components/rfq/IdentifyForm";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 
 export const revalidate = 0;
@@ -19,11 +19,7 @@ export default async function NewRfqPage({
   const next = `/rfq/new${productSlug ? `?product=${productSlug}` : ""}`;
 
   if (!buyerId) {
-    return (
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <IdentifyForm next={next} error={error === "identify"} />
-      </div>
-    );
+    redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
   const [product, categories] = await Promise.all([

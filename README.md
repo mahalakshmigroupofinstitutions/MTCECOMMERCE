@@ -30,7 +30,7 @@ The schema (`prisma/schema.prisma`) models Buyer, Category, Supplier, Product, R
 
 ### Buyer identity (stopgap ahead of real auth)
 
-Phase 1 (real mobile-OTP auth) hasn't been built yet, but Phase 4 (RFQs) needs to know who's asking. `lib/session.ts` implements a minimal stopgap: a name/phone/company form (`identifyAndContinue` in `app/(buyer)/rfq/actions.ts`) that upserts a `Buyer` row and sets a signed session cookie — no OTP verification yet. Requires a `SESSION_SECRET` env var (see `.env.example` for how to generate one). This cookie shape is designed to carry over unchanged once Phase 1 adds real OTP verification in front of it. The signing helpers live in `lib/signedCookie.ts`, shared with the vendor session below.
+Phase 1 (real mobile-OTP auth) hasn't been built yet, but Phase 4 (RFQs) needs to know who's asking. `lib/session.ts` implements a minimal stopgap with a Register/Log in split (`app/(buyer)/register` and `app/(buyer)/login`, backed by `registerBuyer`/`loginBuyer`/`logoutBuyer` in `app/(buyer)/account/actions.ts`): registration captures name/phone/company/GST/city and upserts a `Buyer`, login finds an existing `Buyer` by phone (bouncing unknown numbers to register), and both set a signed session cookie — no OTP verification yet. Requires a `SESSION_SECRET` env var (see `.env.example` for how to generate one). This cookie shape is designed to carry over unchanged once Phase 1 adds real OTP verification in front of it. The signing helpers live in `lib/signedCookie.ts`, shared with the vendor session below.
 
 ### Vendor portal (`/vendor`)
 

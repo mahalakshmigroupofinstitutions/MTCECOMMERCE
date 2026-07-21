@@ -35,13 +35,32 @@ export async function setBuyerSession(buyerId: string) {
   });
 }
 
-/** Finds or creates a Buyer by phone and starts a session for them. */
-export async function identifyBuyer(input: { phone: string; name: string; companyName?: string; city?: string }) {
+export async function clearBuyerSession() {
+  const jar = await cookies();
+  jar.delete(COOKIE_NAME);
+}
+
+/** Finds or creates a Buyer by phone and starts a session for them (registration). */
+export async function identifyBuyer(input: {
+  phone: string;
+  name: string;
+  companyName?: string;
+  gstNumber?: string;
+  city?: string;
+}) {
   const buyer = await prisma.buyer.upsert({
     where: { phone: input.phone },
-    update: { name: input.name, companyName: input.companyName, city: input.city },
+    update: { name: input.name, companyName: input.companyName, gstNumber: input.gstNumber, city: input.city },
     create: input,
   });
+  await setBuyerSession(buyer.id);
+  return buyer;
+}
+
+/** Logs into an existing Buyer by phone. Returns null (no session set) if none exists. */
+export async function loginExistingBuyer(phone: string) {
+  const buyer = await prisma.buyer.findUnique({ where: { phone } });
+  if (!buyer) return null;
   await setBuyerSession(buyer.id);
   return buyer;
 }

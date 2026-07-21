@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
 import { buttonClassName } from "@/components/ui";
-import { IdentifyForm } from "@/components/rfq/IdentifyForm";
 import { getCurrentBuyerId } from "@/lib/session";
 import { getRfqsForBuyer } from "@/lib/rfq";
 
@@ -13,16 +13,11 @@ const STATUS_LABEL: Record<string, string> = {
   CLOSED: "Order placed",
 };
 
-export default async function RfqListPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function RfqListPage() {
   const buyerId = await getCurrentBuyerId();
 
   if (!buyerId) {
-    return (
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <IdentifyForm next="/rfq" error={error === "identify"} />
-      </div>
-    );
+    redirect(`/login?next=${encodeURIComponent("/rfq")}`);
   }
 
   const rfqs = await getRfqsForBuyer(buyerId);
