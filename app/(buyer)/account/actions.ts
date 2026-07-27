@@ -9,11 +9,7 @@ import {
 } from "@/lib/session";
 import { updateBuyerProfile, toggleSavedSupplier } from "@/lib/account";
 import { normalizePhone } from "@/lib/phone";
-import { str } from "@/lib/formData";
-
-function withError(next: string, error: string) {
-  return `${next.includes("?") ? next + "&" : next + "?"}error=${error}`;
-}
+import { str, withErrorParam as withError } from "@/lib/formData";
 
 export async function registerBuyer(formData: FormData) {
   const name = str(formData, "name");

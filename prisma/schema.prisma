@@ -33,8 +33,44 @@ model Category {
   icon  String?
   tag   String?
 
-  products Product[]
-  rfqs     RFQ[]
+  products  Product[]
+  rfqs      RFQ[]
+  suppliers Supplier[]
+}
+
+enum SupplierOnboardingStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  APPROVED
+  REJECTED
+}
+
+enum SupplierBusinessType {
+  MANUFACTURER
+  WHOLESALER
+  DISTRIBUTOR
+  RETAILER
+  IMPORTER_EXPORTER
+  CONTRACTOR
+}
+
+enum SupplierDocumentType {
+  GST_CERTIFICATE
+  PAN_CARD
+  BUSINESS_REGISTRATION
+  MSME_CERTIFICATE
+  AUTHORIZED_PERSON_ID
+}
+
+enum SupplierAccountType {
+  CURRENT
+  SAVINGS
+}
+
+enum SupplierBankVerificationStatus {
+  NOT_VERIFIED
+  PENDING
+  VERIFIED
 }
 
 model Supplier {
@@ -56,10 +92,62 @@ model Supplier {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Email/password vendor sign-up (coexists with the phone-identify flow above)
+  email              String?                  @unique
+  passwordHash       String?
+  emailVerifiedAt    DateTime?
+  contactName        String?
+  dateOfBirth        DateTime?
+  acceptedTermsAt    DateTime?
+  onboardingStatus   SupplierOnboardingStatus @default(APPROVED)
+  onboardingStep     Int                      @default(0)
+  businessType       SupplierBusinessType?
+  businessCategoryId String?
+  panNumber          String?
+  address            String?
+  state              String?
+  pincode            String?
+  website            String?
+
   products       Product[]
   quotes         Quote[]
   orders         Order[]
   savedByBuyers  SavedSupplier[]
+  businessCategory Category?          @relation(fields: [businessCategoryId], references: [id])
+  documents        SupplierDocument[]
+  bankDetail       SupplierBankDetail?
+}
+
+model SupplierDocument {
+  id         String               @id @default(cuid())
+  supplierId String
+  type       SupplierDocumentType
+  fileName   String
+  filePath   String
+  mimeType   String
+  fileSize   Int
+  uploadedAt DateTime             @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+}
+
+// TODO: encrypt accountNumber at rest before production use.
+model SupplierBankDetail {
+  id                 String                         @id @default(cuid())
+  supplierId         String                         @unique
+  accountHolder      String
+  bankName           String
+  accountNumber      String
+  ifscCode           String
+  accountType        SupplierAccountType
+  upiId              String?
+  verificationStatus SupplierBankVerificationStatus @default(NOT_VERIFIED)
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
 }
 
 model Product {

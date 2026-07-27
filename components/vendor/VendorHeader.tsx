@@ -3,6 +3,7 @@ import { Icon } from "@/components/icons/Icon";
 import { buttonClassName } from "@/components/ui";
 import { getCurrentVendor } from "@/lib/vendorSession";
 import { vendorLogout } from "@/app/vendor/actions";
+import { ONBOARDING_STEPS } from "@/lib/vendorOnboarding";
 
 const NAV_LINKS = [
   { href: "/vendor", label: "Dashboard" },
@@ -13,6 +14,15 @@ const NAV_LINKS = [
 
 export async function VendorHeader() {
   const vendor = await getCurrentVendor();
+
+  const banner =
+    vendor?.onboardingStatus === "DRAFT"
+      ? { href: `/vendor/onboarding/${ONBOARDING_STEPS[vendor.onboardingStep] ?? "business"}`, label: "Finish setting up your account" }
+      : vendor?.onboardingStatus === "PENDING_VERIFICATION"
+        ? { href: "/vendor/pending", label: "Verification pending — view status" }
+        : vendor?.onboardingStatus === "REJECTED"
+          ? { href: "/vendor/pending", label: "Application rejected — view details" }
+          : null;
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-paper">
@@ -42,6 +52,11 @@ export async function VendorHeader() {
 
         {vendor ? (
           <div className="flex items-center gap-3">
+            {banner && (
+              <Link href={banner.href} className="rounded-lg bg-wash px-3 py-1.5 text-[12.5px] font-bold text-ink">
+                {banner.label} →
+              </Link>
+            )}
             <Link href="/" className="text-[12.5px] font-semibold text-sub">
               Buyer site
             </Link>

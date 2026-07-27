@@ -4,6 +4,7 @@ import { Icon } from "@/components/icons/Icon";
 import { Metric, VerifiedBadge } from "@/components/ui";
 import { getCurrentSupplierId, getCurrentVendor } from "@/lib/vendorSession";
 import { getVendorRfqs, getVendorProducts, getVendorOrders } from "@/lib/vendor";
+import { ONBOARDING_STEPS } from "@/lib/vendorOnboarding";
 
 export const revalidate = 0;
 
@@ -18,6 +19,9 @@ export default async function VendorDashboardPage() {
     getVendorOrders(supplierId),
   ]);
   if (!vendor) redirect("/vendor/login?next=/vendor");
+  if (vendor.onboardingStatus === "DRAFT") {
+    redirect(`/vendor/onboarding/${ONBOARDING_STEPS[vendor.onboardingStep] ?? "business"}`);
+  }
 
   const notYetQuoted = rfqs.filter((r) => r.quotes.length === 0).length;
   const pendingQuotes = rfqs.filter((r) => r.quotes.some((q) => q.status === "PENDING")).length;

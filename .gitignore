@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# vendor-uploaded files (KYC documents, logos) — never commit user content
+/uploads
+/public/vendor-logos

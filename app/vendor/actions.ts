@@ -1,7 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { identifyVendor, getCurrentSupplierId, clearVendorSession } from "@/lib/vendorSession";
+import {
+  identifyVendor,
+  getCurrentSupplierId,
+  clearVendorSession,
+  registerVendor,
+  loginVendorWithPassword,
+} from "@/lib/vendorSession";
 import { createQuote } from "@/lib/rfq";
 import {
   createVendorProduct,
@@ -10,7 +16,9 @@ import {
   getVendorOrderById,
 } from "@/lib/vendor";
 import { advanceOrderStep } from "@/lib/orders";
-import { str } from "@/lib/formData";
+import { str, withErrorParam } from "@/lib/formData";
+import { normalizePhone } from "@/lib/phone";
+import { ONBOARDING_STEPS } from "@/lib/vendorOnboarding";
 
 function parseLines(text: string | undefined, sep: string): [string, string][] {
   if (!text) return [];
@@ -33,7 +41,7 @@ export async function identifyVendorAndContinue(formData: FormData) {
   const next = str(formData, "next") ?? "/vendor";
 
   if (digits.length < 8 || !name || !city) {
-    redirect(`${next.includes("?") ? next + "&" : next + "?"}error=identify`);
+    redirect(withErrorParam(next, "identify"));
   }
 
   await identifyVendor({
@@ -48,6 +56,63 @@ export async function identifyVendorAndContinue(formData: FormData) {
 export async function vendorLogout() {
   await clearVendorSession();
   redirect("/vendor/login");
+}
+
+export async function registerVendorAction(formData: FormData) {
+  const email = str(formData, "email")?.toLowerCase();
+  const password = str(formData, "password");
+  const confirmPassword = str(formData, "confirmPassword");
+  const contactName = str(formData, "contactName");
+  const phone = normalizePhone(str(formData, "phone"));
+  const dobRaw = str(formData, "dateOfBirth");
+  const acceptedTerms = formData.get("acceptedTerms") === "on";
+
+  if (!email || !password || !contactName || !phone) {
+    redirect(withErrorParam("/vendor/signup", "identify"));
+  }
+  if (password!.length < 8) {
+    redirect(withErrorParam("/vendor/signup", "weak"));
+  }
+  if (password !== confirmPassword) {
+    redirect(withErrorParam("/vendor/signup", "mismatch"));
+  }
+  if (!acceptedTerms) {
+    redirect(withErrorParam("/vendor/signup", "terms"));
+  }
+
+  const result = await registerVendor({
+    email: email!,
+    password: password!,
+    contactName: contactName!,
+    phone: phone!,
+    dateOfBirth: dobRaw ? new Date(dobRaw) : undefined,
+  });
+  if ("error" in result) {
+    redirect(withErrorParam("/vendor/signup", result.error));
+  }
+
+  redirect(`/vendor/onboarding/${ONBOARDING_STEPS[0]}`);
+}
+
+export async function loginVendorWithPasswordAction(formData: FormData) {
+  const email = str(formData, "email")?.toLowerCase();
+  const password = str(formData, "password");
+  const next = str(formData, "next") ?? "/vendor";
+
+  if (!email || !password) {
+    redirect(withErrorParam("/vendor/login", "invalid"));
+  }
+
+  const supplier = await loginVendorWithPassword({ email: email!, password: password! });
+  if (!supplier) {
+    redirect(withErrorParam("/vendor/login", "invalid"));
+  }
+
+  if (supplier.onboardingStatus === "DRAFT") {
+    redirect(`/vendor/onboarding/${ONBOARDING_STEPS[supplier.onboardingStep] ?? "business"}`);
+  }
+
+  redirect(next);
 }
 
 export async function submitVendorQuote(formData: FormData) {

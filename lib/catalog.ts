@@ -11,6 +11,7 @@ export type ProductWithRelations = Awaited<ReturnType<typeof getTopProducts>>[nu
 
 export async function getFeaturedSuppliers(limit = 4) {
   return prisma.supplier.findMany({
+    where: { onboardingStatus: "APPROVED" },
     orderBy: { trustScore: "desc" },
     take: limit,
   });
@@ -26,7 +27,7 @@ export async function getCatalogStats() {
 }
 
 export async function getAllSuppliers() {
-  return prisma.supplier.findMany({ orderBy: { name: "asc" } });
+  return prisma.supplier.findMany({ where: { onboardingStatus: "APPROVED" }, orderBy: { name: "asc" } });
 }
 
 export async function getTopProducts(limit = 4) {
@@ -56,14 +57,14 @@ const SORT_ORDER: Record<ProductSort, Prisma.ProductOrderByWithRelationInput> = 
 };
 
 export async function searchProducts(filters: ProductSearchFilters) {
-  const supplierFilter: Prisma.SupplierWhereInput = {};
+  const supplierFilter: Prisma.SupplierWhereInput = { onboardingStatus: "APPROVED" };
   if (filters.verifiedOnly) supplierFilter.verified = true;
   if (filters.city) supplierFilter.city = { contains: filters.city, mode: "insensitive" };
 
   const where: Prisma.ProductWhereInput = {
     ...(filters.q ? { title: { contains: filters.q, mode: "insensitive" } } : {}),
     ...(filters.category ? { category: { slug: filters.category } } : {}),
-    ...(Object.keys(supplierFilter).length ? { supplier: { is: supplierFilter } } : {}),
+    supplier: { is: supplierFilter },
     ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
       ? {
           price: {
@@ -89,6 +90,7 @@ export async function searchProducts(filters: ProductSearchFilters) {
 /** Product counts per category id and per supplier city, for the search filter sidebar. */
 export async function getSearchFacets() {
   const products = await prisma.product.findMany({
+    where: { supplier: { is: { onboardingStatus: "APPROVED" } } },
     select: { categoryId: true, supplier: { select: { city: true } } },
   });
   const byCategory = new Map<string, number>();
@@ -102,6 +104,7 @@ export async function getSearchFacets() {
 
 export async function getDistinctCities() {
   const suppliers = await prisma.supplier.findMany({
+    where: { onboardingStatus: "APPROVED" },
     select: { city: true },
     distinct: ["city"],
     orderBy: { city: "asc" },
@@ -110,8 +113,8 @@ export async function getDistinctCities() {
 }
 
 export async function getSupplierBySlug(slug: string) {
-  return prisma.supplier.findUnique({
-    where: { slug },
+  return prisma.supplier.findFirst({
+    where: { slug, onboardingStatus: "APPROVED" },
     include: { products: { include: { category: true, supplier: true } } },
   });
 }
@@ -119,8 +122,8 @@ export async function getSupplierBySlug(slug: string) {
 export type SupplierWithProducts = NonNullable<Awaited<ReturnType<typeof getSupplierBySlug>>>;
 
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findUnique({
-    where: { slug },
+  return prisma.product.findFirst({
+    where: { slug, supplier: { is: { onboardingStatus: "APPROVED" } } },
     include: { supplier: true, category: true },
   });
 }

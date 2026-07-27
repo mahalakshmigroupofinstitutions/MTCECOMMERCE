@@ -1,4 +1,5 @@
-import { identifyVendorAndContinue } from "@/app/vendor/actions";
+import Link from "next/link";
+import { identifyVendorAndContinue, loginVendorWithPasswordAction } from "@/app/vendor/actions";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 
 export const revalidate = 0;
@@ -15,7 +16,35 @@ export default async function VendorLoginPage({
   return (
     <div className="mx-auto max-w-md px-6 py-14">
       <h1 className="text-lg font-extrabold text-ink">Vendor login</h1>
-      <p className="mt-1.5 text-[13px] text-sub">
+
+      <p className="mt-1.5 text-[13px] text-sub">Log in with your email and password.</p>
+      {error === "invalid" && (
+        <p className="mt-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
+          Incorrect email or password.
+        </p>
+      )}
+      <form action={loginVendorWithPasswordAction} className="mt-5 flex flex-col gap-3">
+        <input type="hidden" name="next" value={next ?? "/vendor"} />
+        <input name="email" required type="email" placeholder="Email address" className={inputClass} />
+        <input name="password" required type="password" placeholder="Password" className={inputClass} />
+        <SubmitButton pendingText="Logging in…" className={buttonClassName({ full: true })}>
+          Log in
+        </SubmitButton>
+      </form>
+      <p className="mt-3 text-center text-[13px] text-sub">
+        New vendor?{" "}
+        <Link href="/vendor/signup" className="font-bold text-ink underline">
+          Create an account
+        </Link>
+      </p>
+
+      <div className="my-6 flex items-center gap-3 text-[11.5px] font-semibold text-faint">
+        <div className="h-px flex-1 bg-line" />
+        OR — PHONE LOGIN
+        <div className="h-px flex-1 bg-line" />
+      </div>
+
+      <p className="text-[13px] text-sub">
         Enter your business phone number to access your dashboard. If it matches an existing listing, you&rsquo;ll log
         straight into it — otherwise a new (unverified) listing is created. No OTP yet in this build.
       </p>
