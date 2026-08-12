@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { buttonClassName, SubmitButton } from "@/components/ui";
-import { getCurrentSupplierId } from "@/lib/vendorSession";
+import { requireApprovedVendorId } from "@/lib/vendorAccess";
 import { getVendorRfqById } from "@/lib/vendor";
 import { submitVendorQuote } from "@/app/vendor/actions";
 
@@ -24,8 +24,7 @@ export default async function VendorRfqDetailPage({
 }) {
   const { id } = await params;
   const { error } = await searchParams;
-  const supplierId = await getCurrentSupplierId();
-  if (!supplierId) redirect(`/vendor/login?next=/vendor/rfqs/${id}`);
+  const supplierId = await requireApprovedVendorId(`/vendor/rfqs/${id}`);
 
   const rfq = await getVendorRfqById(id, supplierId);
   if (!rfq) notFound();

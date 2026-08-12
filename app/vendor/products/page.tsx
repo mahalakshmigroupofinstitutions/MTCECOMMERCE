@@ -4,9 +4,28 @@ import { Icon } from "@/components/icons/Icon";
 import { Placeholder, buttonClassName, SubmitButton } from "@/components/ui";
 import { getCurrentSupplierId } from "@/lib/vendorSession";
 import { getVendorProducts } from "@/lib/vendor";
-import { deleteVendorProductAction } from "@/app/vendor/actions";
+import { deleteVendorProductAction, setVendorProductStatusAction } from "@/app/vendor/actions";
+import type { ProductStatus } from "@/lib/generated/prisma/client";
 
 export const revalidate = 0;
+
+/* Buyer-facing meaning of each status, mirroring the rule in
+ * lib/publicVisibility.ts. `next` is the one transition this page offers; the
+ * two terminal states are shown but not switched from here. */
+const STATUS_META: Record<ProductStatus, { label: string; hint: string; next?: { status: ProductStatus; action: string } }> = {
+  DRAFT: {
+    label: "Draft",
+    hint: "Not visible to buyers",
+    next: { status: "PUBLISHED", action: "Publish" },
+  },
+  PUBLISHED: {
+    label: "Published",
+    hint: "Visible to buyers",
+    next: { status: "DRAFT", action: "Unpublish" },
+  },
+  OUT_OF_STOCK: { label: "Out of stock", hint: "Visible to buyers" },
+  ARCHIVED: { label: "Archived", hint: "Not visible to buyers" },
+};
 
 export default async function VendorProductsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -30,6 +49,12 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
         </p>
       )}
 
+      {error === "status" && (
+        <p className="mb-4 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
+          Couldn&rsquo;t change that product&rsquo;s status. Please try again.
+        </p>
+      )}
+
       {products.length === 0 ? (
         <div className="rounded-2xl border border-line p-10 text-center text-sm text-sub">
           No products listed yet.
@@ -39,7 +64,9 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {products.map((p) => (
+          {products.map((p) => {
+            const meta = STATUS_META[p.status];
+            return (
             <div key={p.id} className="flex flex-col gap-2 rounded-2xl border border-line p-2.5">
               <Placeholder label={p.title} height={110} />
               <div className="text-[12.5px] leading-tight font-bold text-ink">{p.title}</div>
@@ -47,6 +74,38 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
                 ₹{p.price.toLocaleString("en-IN")}
                 <span className="text-[10px] font-semibold text-sub">/{p.unit}</span>
               </div>
+
+              <div className="flex flex-wrap items-baseline gap-x-1.5">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
+                    p.status === "PUBLISHED" ? "bg-ink text-white" : "bg-wash text-sub"
+                  }`}
+                >
+                  {meta.label}
+                </span>
+                <span className="text-[10.5px] text-faint">{meta.hint}</span>
+              </div>
+
+              {/* Status changes go through the existing setVendorProductStatusAction,
+                  which re-derives the vendor from the session and scopes the update
+                  by supplierId — the productId below is only a reference. */}
+              {meta.next && (
+                <form action={setVendorProductStatusAction}>
+                  <input type="hidden" name="productId" value={p.id} />
+                  <input type="hidden" name="status" value={meta.next.status} />
+                  <SubmitButton
+                    pendingText={`${meta.next.action}ing…`}
+                    className={buttonClassName({
+                      variant: p.status === "DRAFT" ? "solid" : "outline",
+                      size: "sm",
+                      full: true,
+                    })}
+                  >
+                    {meta.next.action}
+                  </SubmitButton>
+                </form>
+              )}
+
               <div className="flex gap-2">
                 <Link
                   href={`/vendor/products/${p.id}/edit`}
@@ -65,7 +124,8 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
                 </form>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

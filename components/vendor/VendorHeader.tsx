@@ -8,6 +8,7 @@ import { ONBOARDING_STEPS } from "@/lib/vendorOnboarding";
 const NAV_LINKS = [
   { href: "/vendor", label: "Dashboard" },
   { href: "/vendor/rfqs", label: "RFQs" },
+  { href: "/vendor/shop", label: "Shop" },
   { href: "/vendor/products", label: "Products" },
   { href: "/vendor/orders", label: "Orders" },
 ];

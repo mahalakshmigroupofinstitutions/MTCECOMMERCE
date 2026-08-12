@@ -13,10 +13,13 @@ import {
   createVendorProduct,
   updateVendorProduct,
   deleteVendorProduct,
+  setVendorProductStatus,
   getVendorOrderById,
 } from "@/lib/vendor";
+import { requireApprovedVendorId } from "@/lib/vendorAccess";
 import { advanceOrderStep } from "@/lib/orders";
 import { str, withErrorParam } from "@/lib/formData";
+import type { ProductStatus } from "@/lib/generated/prisma/client";
 import { normalizePhone } from "@/lib/phone";
 import { ONBOARDING_STEPS } from "@/lib/vendorOnboarding";
 
@@ -116,8 +119,9 @@ export async function loginVendorWithPasswordAction(formData: FormData) {
 }
 
 export async function submitVendorQuote(formData: FormData) {
-  const supplierId = await getCurrentSupplierId();
-  if (!supplierId) redirect("/vendor/login");
+  // Quoting is marketplace activity, so it needs the approval gate — not just a
+  // session. An unapproved vendor POSTing here lands on /vendor/pending.
+  const supplierId = await requireApprovedVendorId("/vendor/rfqs");
 
   const rfqId = str(formData, "rfqId");
   const priceRaw = str(formData, "price");
@@ -172,6 +176,25 @@ export async function saveVendorProduct(formData: FormData) {
     await updateVendorProduct(productId, supplierId!, input);
   } else {
     await createVendorProduct(supplierId!, input);
+  }
+
+  redirect("/vendor/products");
+}
+
+const PRODUCT_STATUSES: ProductStatus[] = ["DRAFT", "PUBLISHED", "OUT_OF_STOCK", "ARCHIVED"];
+
+export async function setVendorProductStatusAction(formData: FormData) {
+  const supplierId = await getCurrentSupplierId();
+  if (!supplierId) redirect("/vendor/login");
+
+  const productId = str(formData, "productId");
+  const status = PRODUCT_STATUSES.find((s) => s === str(formData, "status"));
+  if (!productId || !status) redirect(withErrorParam("/vendor/products", "status"));
+
+  try {
+    await setVendorProductStatus(productId!, supplierId!, status!);
+  } catch {
+    redirect(withErrorParam("/vendor/products", "status"));
   }
 
   redirect("/vendor/products");

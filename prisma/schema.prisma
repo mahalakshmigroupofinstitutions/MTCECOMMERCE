@@ -36,11 +36,14 @@ model Category {
   products  Product[]
   rfqs      RFQ[]
   suppliers Supplier[]
+  shops     Shop[]
 }
 
 enum SupplierOnboardingStatus {
   DRAFT
   PENDING_VERIFICATION
+  UNDER_REVIEW
+  CHANGES_REQUESTED
   APPROVED
   REJECTED
 }
@@ -108,6 +111,9 @@ model Supplier {
   state              String?
   pincode            String?
   website            String?
+  /// Vendor-visible message from the reviewer (e.g. what to fix when
+  /// onboardingStatus is CHANGES_REQUESTED). Never holds internal admin notes.
+  reviewNote         String?
 
   products       Product[]
   quotes         Quote[]
@@ -116,6 +122,7 @@ model Supplier {
   businessCategory Category?          @relation(fields: [businessCategoryId], references: [id])
   documents        SupplierDocument[]
   bankDetail       SupplierBankDetail?
+  shop             Shop?
 }
 
 model SupplierDocument {
@@ -150,6 +157,122 @@ model SupplierBankDetail {
   supplier Supplier @relation(fields: [supplierId], references: [id])
 }
 
+/// Lifecycle of the vendor's storefront, deliberately kept separate from the
+/// vendor's own verification state (Supplier.onboardingStatus). A shop only
+/// reaches LIVE through an explicit vendor "Publish store" action, and only
+/// once the vendor is APPROVED, setup is complete, and one product is PUBLISHED.
+enum ShopStatus {
+  DRAFT
+  INCOMPLETE
+  READY
+  LIVE
+  HIDDEN
+}
+
+enum ShopCertificationType {
+  ISO
+  MSME
+  BIS
+  AUTHORIZED_DEALER
+  COMPANY_BROCHURE
+  PROJECT_PORTFOLIO
+  OTHER
+}
+
+/// One storefront per Supplier (supplierId is unique — multi-shop is a Phase 2
+/// question). Holds every Shop Setup step as columns on a single row rather
+/// than one model per wizard step; the store URL is NOT here, it stays on
+/// Supplier.slug so /supplier/[slug] remains the single canonical storefront.
+model Shop {
+  id         String @id @default(cuid())
+  supplierId String @unique
+
+  // Step 1 — Basic information
+  name         String
+  description  String?
+  supportEmail String?
+  supportPhone String?
+  categoryId   String?
+
+  // Step 2 — Branding
+  logoUrl    String?
+  bannerUrl  String?
+  brandColor String?
+
+  // Step 3 — Business details
+  businessEmail String?
+  website       String?
+  hoursOpen     String?
+  hoursClose    String?
+  workingDays   String[]
+  addressLine   String?
+  city          String?
+  state         String?
+  pincode       String?
+
+  // Step 4 — Delivery configuration (shop-level for MVP, no separate module)
+  deliveryAreas   String[]
+  shippingMethods String[]
+  deliveryCharges String?
+  deliveryEta     String?
+  selfPickup      Boolean  @default(false)
+  dispatchAddress String?
+
+  // Step 5 — Policies
+  returnPolicy       String?
+  refundPolicy       String?
+  cancellationPolicy String?
+  warrantyInfo       String?
+
+  // Step 7 — Social links
+  linkedinUrl    String?
+  facebookUrl    String?
+  instagramUrl   String?
+  youtubeUrl     String?
+  whatsappNumber String?
+
+  // State
+  status         ShopStatus @default(DRAFT)
+  /// Wizard step slugs the vendor has saved, so progress survives navigation.
+  completedSteps String[]
+  publishedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  category       Category?           @relation(fields: [categoryId], references: [id])
+  certifications ShopCertification[]
+
+  @@index([status])
+}
+
+/// Shop/business marketing content (ISO, MSME, brochures…). Explicitly NOT an
+/// input to vendor verification — that stays document + reviewer driven.
+model ShopCertification {
+  id         String                @id @default(cuid())
+  shopId     String
+  type       ShopCertificationType
+  title      String?
+  fileName   String
+  filePath   String
+  mimeType   String
+  fileSize   Int
+  uploadedAt DateTime              @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id])
+
+  @@index([shopId])
+}
+
+/// Buyer-facing visibility of a single listing. New vendor products start as
+/// DRAFT; approval of the vendor alone never makes a product public.
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  OUT_OF_STOCK
+  ARCHIVED
+}
+
 model Product {
   id              String   @id @default(cuid())
   slug            String   @unique
@@ -170,13 +293,30 @@ model Product {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  status           ProductStatus @default(DRAFT)
+  brand            String?
+  sku              String?
+  shortDescription String?
+  stock            Int?
+  gstPercent       Int?
+  leadTime         String?
+  /// Gallery images; imageUrl above stays the cover image.
+  images           String[]
+  videoUrl         String?
+  datasheetUrl     String?
+  certificateUrl   String?
+  weightKg         Float?
+  dimensions       String?
+
   supplier Supplier @relation(fields: [supplierId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
   rfqs     RFQ[]
   orders   Order[]
 
+  @@unique([supplierId, sku])
   @@index([categoryId])
   @@index([supplierId])
+  @@index([status])
 }
 
 enum RfqStatus {
