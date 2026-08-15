@@ -15,14 +15,23 @@ const NAV_LINKS = [
 export async function VendorHeader() {
   const vendor = await getCurrentVendor();
 
-  const banner =
-    vendor?.onboardingStatus === "DRAFT"
-      ? { href: `/vendor/onboarding/${ONBOARDING_STEPS[vendor.onboardingStep] ?? "business"}`, label: "Finish setting up your account" }
-      : vendor?.onboardingStatus === "PENDING_VERIFICATION"
-        ? { href: "/vendor/pending", label: "Verification pending — view status" }
-        : vendor?.onboardingStatus === "REJECTED"
-          ? { href: "/vendor/pending", label: "Application rejected — view details" }
-          : null;
+  const BANNERS: Partial<Record<NonNullable<typeof vendor>["onboardingStatus"], string>> = {
+    PENDING_VERIFICATION: "Verification pending — view status",
+    UNDER_REVIEW: "Application under review — view status",
+    CHANGES_REQUESTED: "Changes requested — view details",
+    REJECTED: "Application rejected — view details",
+  };
+
+  const banner = !vendor
+    ? null
+    : vendor.onboardingStatus === "DRAFT"
+      ? {
+          href: `/vendor/onboarding/${ONBOARDING_STEPS[vendor.onboardingStep] ?? "business"}`,
+          label: "Finish setting up your account",
+        }
+      : BANNERS[vendor.onboardingStatus]
+        ? { href: "/vendor/pending", label: BANNERS[vendor.onboardingStatus]! }
+        : null;
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-paper">

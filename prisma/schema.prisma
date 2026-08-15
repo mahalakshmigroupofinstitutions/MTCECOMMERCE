@@ -38,11 +38,27 @@ model Category {
   suppliers Supplier[]
 }
 
+/// Marketplace staff who review vendor onboarding submissions. Flat role —
+/// every admin can approve/reject. Accounts are created via prisma/createAdmin.ts,
+/// there is no admin self-signup.
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reviewedSuppliers Supplier[] @relation("SupplierReviewedBy")
+}
+
 enum SupplierOnboardingStatus {
   DRAFT
   PENDING_VERIFICATION
+  UNDER_REVIEW
   APPROVED
   REJECTED
+  CHANGES_REQUESTED
 }
 
 enum SupplierBusinessType {
@@ -109,6 +125,11 @@ model Supplier {
   pincode            String?
   website            String?
 
+  // Admin review outcome (set by the /admin verification queue)
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewNote   String?
+
   products       Product[]
   quotes         Quote[]
   orders         Order[]
@@ -116,6 +137,7 @@ model Supplier {
   businessCategory Category?          @relation(fields: [businessCategoryId], references: [id])
   documents        SupplierDocument[]
   bankDetail       SupplierBankDetail?
+  reviewedBy       Admin?             @relation("SupplierReviewedBy", fields: [reviewedById], references: [id])
 }
 
 model SupplierDocument {

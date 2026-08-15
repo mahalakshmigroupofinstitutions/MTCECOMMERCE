@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { sign, unsign } from "@/lib/signedCookie";
 import { uniqueSlug } from "@/lib/slug";
-import { hashPassword, verifyPassword } from "@/lib/vendorAuth";
+import { hashPassword, verifyPassword } from "@/lib/passwordAuth";
 import { sendVendorVerificationEmailStub } from "@/lib/mailer";
 
 const COOKIE_NAME = "nx_vendor";
