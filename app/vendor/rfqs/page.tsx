@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentSupplierId } from "@/lib/vendorSession";
+import { requireApprovedVendorId } from "@/lib/vendorAccess";
 import { getVendorRfqs, type VendorRfq } from "@/lib/vendor";
 
 export const revalidate = 0;
@@ -14,9 +13,7 @@ function statusFor(rfq: VendorRfq) {
 }
 
 export default async function VendorRfqInboxPage() {
-  const supplierId = await getCurrentSupplierId();
-  if (!supplierId) redirect("/vendor/login?next=/vendor/rfqs");
-
+  const supplierId = await requireApprovedVendorId("/vendor/rfqs");
   const rfqs = await getVendorRfqs(supplierId);
 
   return (

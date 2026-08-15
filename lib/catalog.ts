@@ -1,5 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import {
+  publicProductWhere,
+  publicProductWithSupplierWhere,
+  publicSupplierWhere,
+} from "@/lib/publicVisibility";
 import type { Prisma } from "@/lib/generated/prisma/client";
+
+/* Every query in this file is buyer-facing, so every one of them composes the
+ * shared filters from lib/publicVisibility.ts. Vendor-side queries live in
+ * lib/vendor.ts and deliberately do NOT filter — a vendor must still see their
+ * own drafts. Buyer RFQ/order history (lib/rfq.ts, lib/orders.ts) is also
+ * unfiltered on purpose: a buyer keeps seeing a product they already ordered
+ * even after the vendor drafts or archives it. */
 
 export async function getCategories() {
   return prisma.category.findMany({ orderBy: { name: "asc" } });
@@ -11,27 +23,30 @@ export type ProductWithRelations = Awaited<ReturnType<typeof getTopProducts>>[nu
 
 export async function getFeaturedSuppliers(limit = 4) {
   return prisma.supplier.findMany({
-    where: { onboardingStatus: "APPROVED" },
+    where: publicSupplierWhere,
     orderBy: { trustScore: "desc" },
     take: limit,
   });
 }
 
+/** Homepage counters — these advertise the marketplace, so they count only what
+ * a buyer could actually find. */
 export async function getCatalogStats() {
   const [categories, suppliers, products] = await Promise.all([
     prisma.category.count(),
-    prisma.supplier.count(),
-    prisma.product.count(),
+    prisma.supplier.count({ where: publicSupplierWhere }),
+    prisma.product.count({ where: publicProductWithSupplierWhere }),
   ]);
   return { categories, suppliers, products };
 }
 
 export async function getAllSuppliers() {
-  return prisma.supplier.findMany({ where: { onboardingStatus: "APPROVED" }, orderBy: { name: "asc" } });
+  return prisma.supplier.findMany({ where: publicSupplierWhere, orderBy: { name: "asc" } });
 }
 
 export async function getTopProducts(limit = 4) {
   return prisma.product.findMany({
+    where: publicProductWithSupplierWhere,
     orderBy: { rating: "desc" },
     take: limit,
     include: { supplier: true, category: true },
@@ -57,11 +72,12 @@ const SORT_ORDER: Record<ProductSort, Prisma.ProductOrderByWithRelationInput> = 
 };
 
 export async function searchProducts(filters: ProductSearchFilters) {
-  const supplierFilter: Prisma.SupplierWhereInput = { onboardingStatus: "APPROVED" };
+  const supplierFilter: Prisma.SupplierWhereInput = { ...publicSupplierWhere };
   if (filters.verifiedOnly) supplierFilter.verified = true;
   if (filters.city) supplierFilter.city = { contains: filters.city, mode: "insensitive" };
 
   const where: Prisma.ProductWhereInput = {
+    ...publicProductWhere,
     ...(filters.q ? { title: { contains: filters.q, mode: "insensitive" } } : {}),
     ...(filters.category ? { category: { slug: filters.category } } : {}),
     supplier: { is: supplierFilter },
@@ -90,7 +106,7 @@ export async function searchProducts(filters: ProductSearchFilters) {
 /** Product counts per category id and per supplier city, for the search filter sidebar. */
 export async function getSearchFacets() {
   const products = await prisma.product.findMany({
-    where: { supplier: { is: { onboardingStatus: "APPROVED" } } },
+    where: publicProductWithSupplierWhere,
     select: { categoryId: true, supplier: { select: { city: true } } },
   });
   const byCategory = new Map<string, number>();
@@ -104,7 +120,7 @@ export async function getSearchFacets() {
 
 export async function getDistinctCities() {
   const suppliers = await prisma.supplier.findMany({
-    where: { onboardingStatus: "APPROVED" },
+    where: publicSupplierWhere,
     select: { city: true },
     distinct: ["city"],
     orderBy: { city: "asc" },
@@ -114,8 +130,8 @@ export async function getDistinctCities() {
 
 export async function getSupplierBySlug(slug: string) {
   return prisma.supplier.findFirst({
-    where: { slug, onboardingStatus: "APPROVED" },
-    include: { products: { include: { category: true, supplier: true } } },
+    where: { slug, ...publicSupplierWhere },
+    include: { products: { where: publicProductWhere, include: { category: true, supplier: true } } },
   });
 }
 
@@ -123,7 +139,7 @@ export type SupplierWithProducts = NonNullable<Awaited<ReturnType<typeof getSupp
 
 export async function getProductBySlug(slug: string) {
   return prisma.product.findFirst({
-    where: { slug, supplier: { is: { onboardingStatus: "APPROVED" } } },
+    where: { slug, ...publicProductWithSupplierWhere },
     include: { supplier: true, category: true },
   });
 }
