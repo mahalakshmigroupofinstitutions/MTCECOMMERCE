@@ -1,0 +1,461 @@
+// NextGen — B2B marketplace schema.
+// Model shapes are derived from the design prototype's data.js sample data
+// (CATEGORIES, SUPPLIERS, PRODUCTS, QUOTES, ORDER) — see Phase 2/4/5 of the dev plan.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Buyer {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  name        String?
+  companyName String?
+  gstNumber   String?
+  city        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rfqs           RFQ[]
+  orders         Order[]
+  savedSuppliers SavedSupplier[]
+}
+
+model Category {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  icon  String?
+  tag   String?
+
+  products  Product[]
+  rfqs      RFQ[]
+  suppliers Supplier[]
+  shops     Shop[]
+}
+
+/// Marketplace staff who review vendor onboarding submissions. Flat role —
+/// every admin can approve/reject. Accounts are created via prisma/createAdmin.ts,
+/// there is no admin self-signup.
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reviewedSuppliers Supplier[] @relation("SupplierReviewedBy")
+}
+
+enum SupplierOnboardingStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum SupplierBusinessType {
+  MANUFACTURER
+  WHOLESALER
+  DISTRIBUTOR
+  RETAILER
+  IMPORTER_EXPORTER
+  CONTRACTOR
+}
+
+enum SupplierDocumentType {
+  GST_CERTIFICATE
+  PAN_CARD
+  BUSINESS_REGISTRATION
+  MSME_CERTIFICATE
+  AUTHORIZED_PERSON_ID
+}
+
+enum SupplierAccountType {
+  CURRENT
+  SAVINGS
+}
+
+enum SupplierBankVerificationStatus {
+  NOT_VERIFIED
+  PENDING
+  VERIFIED
+}
+
+model Supplier {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  city            String
+  verified        Boolean  @default(false)
+  trustScore      Float    @default(0)
+  reviewsCount    Int      @default(0)
+  years           Int      @default(0)
+  responseTime    String?
+  deliveryPercent Int      @default(0)
+  gstNumber       String?
+  phone           String?  @unique
+  tags            String[]
+  blurb           String?
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Email/password vendor sign-up (coexists with the phone-identify flow above)
+  email              String?                  @unique
+  passwordHash       String?
+  emailVerifiedAt    DateTime?
+  contactName        String?
+  dateOfBirth        DateTime?
+  acceptedTermsAt    DateTime?
+  onboardingStatus   SupplierOnboardingStatus @default(APPROVED)
+  onboardingStep     Int                      @default(0)
+  businessType       SupplierBusinessType?
+  businessCategoryId String?
+  panNumber          String?
+  address            String?
+  state              String?
+  pincode            String?
+  website            String?
+  /// Vendor-visible message from the reviewer (e.g. what to fix when
+  /// onboardingStatus is CHANGES_REQUESTED). Never holds internal admin notes.
+  reviewNote   String?
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  products       Product[]
+  quotes         Quote[]
+  orders         Order[]
+  savedByBuyers  SavedSupplier[]
+  businessCategory Category?          @relation(fields: [businessCategoryId], references: [id])
+  documents        SupplierDocument[]
+  bankDetail       SupplierBankDetail?
+  shop             Shop?
+  reviewedBy       Admin?             @relation("SupplierReviewedBy", fields: [reviewedById], references: [id])
+}
+
+model SupplierDocument {
+  id         String               @id @default(cuid())
+  supplierId String
+  type       SupplierDocumentType
+  fileName   String
+  filePath   String
+  mimeType   String
+  fileSize   Int
+  uploadedAt DateTime             @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+}
+
+// TODO: encrypt accountNumber at rest before production use.
+model SupplierBankDetail {
+  id                 String                         @id @default(cuid())
+  supplierId         String                         @unique
+  accountHolder      String
+  bankName           String
+  accountNumber      String
+  ifscCode           String
+  accountType        SupplierAccountType
+  upiId              String?
+  verificationStatus SupplierBankVerificationStatus @default(NOT_VERIFIED)
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+}
+
+/// Lifecycle of the vendor's storefront, deliberately kept separate from the
+/// vendor's own verification state (Supplier.onboardingStatus). A shop only
+/// reaches LIVE through an explicit vendor "Publish store" action, and only
+/// once the vendor is APPROVED, setup is complete, and one product is PUBLISHED.
+enum ShopStatus {
+  DRAFT
+  INCOMPLETE
+  READY
+  LIVE
+  HIDDEN
+}
+
+enum ShopCertificationType {
+  ISO
+  MSME
+  BIS
+  AUTHORIZED_DEALER
+  COMPANY_BROCHURE
+  PROJECT_PORTFOLIO
+  OTHER
+}
+
+/// One storefront per Supplier (supplierId is unique — multi-shop is a Phase 2
+/// question). Holds every Shop Setup step as columns on a single row rather
+/// than one model per wizard step; the store URL is NOT here, it stays on
+/// Supplier.slug so /supplier/[slug] remains the single canonical storefront.
+model Shop {
+  id         String @id @default(cuid())
+  supplierId String @unique
+
+  // Step 1 — Basic information
+  name         String
+  description  String?
+  supportEmail String?
+  supportPhone String?
+  categoryId   String?
+
+  // Step 2 — Branding
+  logoUrl    String?
+  bannerUrl  String?
+  brandColor String?
+
+  // Step 3 — Business details
+  businessEmail String?
+  website       String?
+  hoursOpen     String?
+  hoursClose    String?
+  workingDays   String[]
+  addressLine   String?
+  city          String?
+  state         String?
+  pincode       String?
+
+  // Step 4 — Delivery configuration (shop-level for MVP, no separate module)
+  deliveryAreas   String[]
+  shippingMethods String[]
+  deliveryCharges String?
+  deliveryEta     String?
+  selfPickup      Boolean  @default(false)
+  dispatchAddress String?
+
+  // Step 5 — Policies
+  returnPolicy       String?
+  refundPolicy       String?
+  cancellationPolicy String?
+  warrantyInfo       String?
+
+  // Step 7 — Social links
+  linkedinUrl    String?
+  facebookUrl    String?
+  instagramUrl   String?
+  youtubeUrl     String?
+  whatsappNumber String?
+
+  // State
+  status         ShopStatus @default(DRAFT)
+  /// Wizard step slugs the vendor has saved, so progress survives navigation.
+  completedSteps String[]
+  publishedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  category       Category?           @relation(fields: [categoryId], references: [id])
+  certifications ShopCertification[]
+
+  @@index([status])
+}
+
+/// Shop/business marketing content (ISO, MSME, brochures…). Explicitly NOT an
+/// input to vendor verification — that stays document + reviewer driven.
+model ShopCertification {
+  id         String                @id @default(cuid())
+  shopId     String
+  type       ShopCertificationType
+  title      String?
+  fileName   String
+  filePath   String
+  mimeType   String
+  fileSize   Int
+  uploadedAt DateTime              @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id])
+
+  @@index([shopId])
+}
+
+/// Buyer-facing visibility of a single listing. New vendor products start as
+/// DRAFT; approval of the vendor alone never makes a product public.
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  OUT_OF_STOCK
+  ARCHIVED
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  supplierId      String
+  categoryId      String
+  unit            String
+  price           Int
+  moq             Int
+  moqUnit         String
+  rating          Float?
+  ordersLabel     String?
+  verifiedProduct Boolean  @default(false)
+  specs           Json?
+  tiers           Json?
+  description     String?
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  status           ProductStatus @default(DRAFT)
+  brand            String?
+  sku              String?
+  shortDescription String?
+  stock            Int?
+  gstPercent       Int?
+  leadTime         String?
+  /// Gallery images; imageUrl above stays the cover image.
+  images           String[]
+  videoUrl         String?
+  datasheetUrl     String?
+  certificateUrl   String?
+  weightKg         Float?
+  dimensions       String?
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  rfqs     RFQ[]
+  orders   Order[]
+
+  @@unique([supplierId, sku])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+enum RfqStatus {
+  OPEN
+  QUOTED
+  CLOSED
+}
+
+model RFQ {
+  id                 String    @id @default(cuid())
+  buyerId            String
+  productId          String?
+  categoryId         String?
+  quantity           String
+  notes              String?
+  targetDeliveryDate DateTime?
+  status             RfqStatus @default(OPEN)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  buyer    Buyer     @relation(fields: [buyerId], references: [id])
+  product  Product?  @relation(fields: [productId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+  quotes   Quote[]
+  orders   Order[]
+
+  @@index([buyerId])
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  rfqId      String
+  supplierId String
+  price      Int
+  unit       String
+  moq        String?
+  delivery   String?
+  payment    String?
+  validUntil DateTime?
+  best       Boolean     @default(false)
+  note       String?
+  status     QuoteStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  rfq      RFQ      @relation(fields: [rfqId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  order    Order?
+
+  @@index([rfqId])
+}
+
+enum OrderStatus {
+  CONFIRMED
+  PAYMENT_RECEIVED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  rfqId           String?
+  quoteId         String?       @unique
+  buyerId         String
+  supplierId      String
+  productId       String?
+  quantity        String
+  total           Int
+  status          OrderStatus   @default(CONFIRMED)
+  paymentStatus   PaymentStatus @default(PENDING)
+  razorpayOrderId String?
+  placedAt        DateTime      @default(now())
+  etaAt           DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  buyer    Buyer     @relation(fields: [buyerId], references: [id])
+  supplier Supplier  @relation(fields: [supplierId], references: [id])
+  product  Product?  @relation(fields: [productId], references: [id])
+  rfq      RFQ?      @relation(fields: [rfqId], references: [id])
+  quote    Quote?    @relation(fields: [quoteId], references: [id])
+  steps    OrderStep[]
+
+  @@index([buyerId])
+  @@index([supplierId])
+}
+
+model OrderStep {
+  id        String    @id @default(cuid())
+  orderId   String
+  key       String
+  label     String
+  position  Int
+  done      Boolean   @default(false)
+  active    Boolean   @default(false)
+  at        DateTime?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+}
+
+model SavedSupplier {
+  buyerId    String
+  supplierId String
+  createdAt  DateTime @default(now())
+
+  buyer    Buyer    @relation(fields: [buyerId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@id([buyerId, supplierId])
+}
