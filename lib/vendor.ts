@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { uniqueSlug } from "@/lib/slug";
+import { deleteVendorPublicImage } from "@/lib/localFileStorage";
 import type { ProductStatus } from "@/lib/generated/prisma/client";
 
 /** Whether the vendor has cleared verification. Lives here, next to the data it
@@ -90,6 +91,11 @@ export interface VendorProductInput {
   specs?: [string, string][];
   tiers?: [string, string][];
   description?: string;
+  /** undefined = leave the current photo alone, null = clear it, string = new
+   * photo URL. Distinct from the other fields because Prisma treats an
+   * `undefined` value as "not provided" — that's what makes "didn't touch the
+   * image field" a no-op update instead of wiping it. */
+  imageUrl?: string | null;
 }
 
 export async function createVendorProduct(supplierId: string, input: VendorProductInput) {
@@ -101,7 +107,13 @@ export async function createVendorProduct(supplierId: string, input: VendorProdu
 export async function updateVendorProduct(id: string, supplierId: string, input: VendorProductInput) {
   const existing = await prisma.product.findFirst({ where: { id, supplierId } });
   if (!existing) throw new Error("Product not found or not owned by this vendor");
-  return prisma.product.update({ where: { id }, data: input });
+
+  const updated = await prisma.product.update({ where: { id }, data: input });
+  // Only after the row committed — a failed update must not lose a live photo.
+  if (input.imageUrl !== undefined && existing.imageUrl && existing.imageUrl !== input.imageUrl) {
+    await deleteVendorPublicImage(existing.imageUrl);
+  }
+  return updated;
 }
 
 /** Vendor-driven listing visibility over the existing ProductStatus enum — no

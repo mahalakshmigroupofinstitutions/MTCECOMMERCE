@@ -61,7 +61,7 @@ export async function createQuote(input: CreateQuoteInput) {
 }
 
 /** Best-effort: pulls the leading number out of a free-text quantity like "25 tons". */
-function parseLeadingNumber(text: string): number | null {
+export function parseLeadingNumber(text: string): number | null {
   const match = text.match(/[\d,]+(\.\d+)?/);
   if (!match) return null;
   const n = parseFloat(match[0].replace(/,/g, ""));

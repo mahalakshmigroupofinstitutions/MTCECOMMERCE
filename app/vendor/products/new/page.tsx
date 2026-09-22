@@ -12,5 +12,5 @@ export default async function NewVendorProductPage({ searchParams }: { searchPar
 
   const categories = await getCategories();
 
-  return <ProductForm categories={categories} error={error === "1"} />;
+  return <ProductForm categories={categories} error={error} />;
 }

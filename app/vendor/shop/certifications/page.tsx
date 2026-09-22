@@ -77,7 +77,7 @@ function CertificationCard({ certification }: { certification: VendorShop["certi
             <input type="hidden" name="certificationId" value={certification.id} />
             <SubmitButton
               pendingText="Removing…"
-              className={buttonClassName({ variant: "ghost", size: "sm" })}
+              className={buttonClassName({ variant: "danger", size: "sm" })}
             >
               Delete
             </SubmitButton>
@@ -107,7 +107,7 @@ function CertificationCard({ certification }: { certification: VendorShop["certi
             />
           </FormField>
 
-          <SubmitButton pendingText="Saving…" className={buttonClassName({ variant: "outline", size: "sm" })}>
+          <SubmitButton pendingText="Saving…" className={buttonClassName({ variant: "success", size: "sm" })}>
             Update
           </SubmitButton>
         </div>
@@ -212,7 +212,7 @@ export default async function ShopCertificationsPage({
             <SubmitButton
               pendingText="Uploading…"
               disabled={atLimit}
-              className={buttonClassName({ size: "md", className: "w-full sm:w-auto" })}
+              className={buttonClassName({ variant: "success", size: "md", className: "w-full sm:w-auto" })}
             >
               <Icon name="plus" size={16} strokeWidth={2} /> Add certification
             </SubmitButton>

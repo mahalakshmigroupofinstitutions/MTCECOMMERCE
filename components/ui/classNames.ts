@@ -2,13 +2,19 @@
  * plain <Link>s styled to match them. Kept in a non-"use client" module so Server
  * Components can call them directly. */
 
-export type ButtonVariant = "solid" | "outline" | "ghost";
+export type ButtonVariant = "solid" | "outline" | "ghost" | "success" | "danger" | "secondary";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const BUTTON_VARIANT_CLASSES: Record<ButtonVariant, string> = {
   solid: "bg-accent text-white border border-accent hover:brightness-[1.08] hover:shadow-md hover:shadow-accent/20",
   outline: "bg-paper text-ink border border-line hover:border-ink hover:bg-wash",
   ghost: "bg-transparent text-ink border border-transparent hover:bg-wash",
+  /* Save/submit/create/publish actions. */
+  success: "bg-green text-white border border-green hover:brightness-[1.08] hover:shadow-md hover:shadow-green/20",
+  /* Delete/reject/remove actions. */
+  danger: "bg-red text-white border border-red hover:brightness-[1.08] hover:shadow-md hover:shadow-red/20",
+  /* Edit and other secondary (non-primary, non-destructive) actions. */
+  secondary: "bg-blue text-white border border-blue hover:brightness-[1.08] hover:shadow-md hover:shadow-blue/20",
 };
 
 const BUTTON_SIZE_CLASSES: Record<ButtonSize, string> = {

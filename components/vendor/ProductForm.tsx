@@ -1,6 +1,10 @@
-import { buttonClassName, SubmitButton } from "@/components/ui";
+import { buttonClassName, CatalogImage, FileInput, FormField, SubmitButton } from "@/components/ui";
 import { saveVendorProduct } from "@/app/vendor/actions";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/localFileStorage";
 import type { CategoryRow } from "@/lib/catalog";
+
+const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",");
+const MAX_IMAGE_MB = Math.round(MAX_IMAGE_BYTES / (1024 * 1024));
 
 const inputClass = "w-full rounded-xl border border-line px-3.5 py-3 text-sm text-ink outline-none placeholder:text-faint";
 
@@ -33,8 +37,9 @@ export interface ProductFormProps {
     specs: unknown;
     tiers: unknown;
     description: string | null;
+    imageUrl: string | null;
   };
-  error?: boolean;
+  error?: string;
 }
 
 export function ProductForm({ categories, product, error }: ProductFormProps) {
@@ -43,11 +48,31 @@ export function ProductForm({ categories, product, error }: ProductFormProps) {
       <h1 className="text-lg font-extrabold text-ink">{product ? "Edit product" : "Add a product"}</h1>
       {error && (
         <p className="mt-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
-          Please fill in all required fields.
+          {error === "image"
+            ? `Please upload a PNG, JPG or WebP photo up to ${MAX_IMAGE_MB} MB.`
+            : "Please fill in all required fields."}
         </p>
       )}
       <form action={saveVendorProduct} className="mt-5 flex flex-col gap-4">
         {product && <input type="hidden" name="productId" value={product.id} />}
+
+        <FormField
+          htmlFor="image"
+          label="Product photo (optional)"
+          hint={`Shown to buyers on your listing. PNG, JPG or WebP, up to ${MAX_IMAGE_MB} MB.`}
+        >
+          <div className="mb-3">
+            <CatalogImage src={product?.imageUrl} label={product?.title ?? "Product photo"} height={160} />
+          </div>
+          <FileInput id="image" name="image" accept={IMAGE_ACCEPT} />
+        </FormField>
+
+        {product?.imageUrl && (
+          <label className="-mt-2 flex cursor-pointer items-center gap-2 text-[12px] font-semibold text-sub">
+            <input type="checkbox" name="removeImage" className="h-3.5 w-3.5 accent-[var(--color-accent)]" />
+            Remove current photo
+          </label>
+        )}
 
         <div>
           <div className="mb-1.5 text-[12.5px] font-bold text-ink">Title</div>
@@ -122,7 +147,7 @@ export function ProductForm({ categories, product, error }: ProductFormProps) {
           />
         </div>
 
-        <SubmitButton pendingText="Saving…" className={buttonClassName({ full: true, size: "lg" })}>
+        <SubmitButton pendingText="Saving…" className={buttonClassName({ variant: "success", full: true, size: "lg" })}>
           {product ? "Save changes" : "Add product"}
         </SubmitButton>
       </form>

@@ -1,3 +1,5 @@
+/* Shared password hashing for the account types that use email + password
+ * (vendor sign-up, admin login). */
 import "server-only";
 import bcrypt from "bcryptjs";
 

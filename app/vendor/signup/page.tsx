@@ -74,7 +74,7 @@ export default async function VendorSignupPage({
           I accept the Terms of Service and Privacy Policy
         </label>
 
-        <SubmitButton pendingText="Creating account…" className={buttonClassName({ full: true })}>
+        <SubmitButton pendingText="Creating account…" className={buttonClassName({ variant: "success", full: true })}>
           Continue
         </SubmitButton>
       </form>

@@ -16,18 +16,31 @@ export default async function VendorPendingPage() {
   if (vendor.onboardingStatus === "APPROVED") redirect("/vendor");
 
   const rejected = vendor.onboardingStatus === "REJECTED";
+  const changesRequested = vendor.onboardingStatus === "CHANGES_REQUESTED";
+  const needsAttention = rejected || changesRequested;
 
   return (
     <div className="mx-auto max-w-md px-6 py-16 text-center">
-      <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${rejected ? "bg-wash" : "bg-wash"}`}>
-        <Icon name={rejected ? "x" : "clock"} size={26} className={rejected ? "text-accent" : "text-ink"} />
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-wash">
+        <Icon
+          name={rejected ? "x" : changesRequested ? "bell" : "clock"}
+          size={26}
+          className={needsAttention ? "text-accent" : "text-ink"}
+        />
       </div>
 
       {rejected ? (
         <>
           <h1 className="mt-5 text-lg font-extrabold text-ink">Application not approved</h1>
           <p className="mt-2 text-[13px] text-sub">
-            Your vendor application wasn&rsquo;t approved. Reach out to support for details on next steps.
+            Your vendor application wasn&rsquo;t approved. Reach out to support if you think this was a mistake.
+          </p>
+        </>
+      ) : changesRequested ? (
+        <>
+          <h1 className="mt-5 text-lg font-extrabold text-ink">Changes requested</h1>
+          <p className="mt-2 text-[13px] text-sub">
+            Our team needs a few things updated before your application can be approved.
           </p>
         </>
       ) : (
@@ -39,6 +52,13 @@ export default async function VendorPendingPage() {
             <strong className="text-ink">{vendor.email}</strong> once a decision is made.
           </p>
         </>
+      )}
+
+      {needsAttention && vendor.reviewNote && (
+        <div className="mt-4 rounded-xl border border-line bg-wash p-4 text-left">
+          <p className="text-[11px] font-bold text-faint">NOTE FROM THE REVIEW TEAM</p>
+          <p className="mt-1.5 text-[13px] text-ink">{vendor.reviewNote}</p>
+        </div>
       )}
 
       <p className="mt-4 text-[12.5px] text-sub">

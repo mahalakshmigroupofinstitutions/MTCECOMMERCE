@@ -87,7 +87,7 @@ export default async function OnboardingBankPage({
           </div>
         </div>
 
-        <SubmitButton pendingText="Saving…" className={buttonClassName({ full: true, size: "lg" })}>
+        <SubmitButton pendingText="Saving…" className={buttonClassName({ variant: "success", full: true, size: "lg" })}>
           Save & continue
         </SubmitButton>
       </form>

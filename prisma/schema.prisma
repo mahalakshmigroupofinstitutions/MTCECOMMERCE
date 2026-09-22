@@ -39,6 +39,20 @@ model Category {
   shops     Shop[]
 }
 
+/// Marketplace staff who review vendor onboarding submissions. Flat role —
+/// every admin can approve/reject. Accounts are created via prisma/createAdmin.ts,
+/// there is no admin self-signup.
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reviewedSuppliers Supplier[] @relation("SupplierReviewedBy")
+}
+
 enum SupplierOnboardingStatus {
   DRAFT
   PENDING_VERIFICATION
@@ -113,7 +127,9 @@ model Supplier {
   website            String?
   /// Vendor-visible message from the reviewer (e.g. what to fix when
   /// onboardingStatus is CHANGES_REQUESTED). Never holds internal admin notes.
-  reviewNote         String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+  reviewedById String?
 
   products       Product[]
   quotes         Quote[]
@@ -123,6 +139,7 @@ model Supplier {
   documents        SupplierDocument[]
   bankDetail       SupplierBankDetail?
   shop             Shop?
+  reviewedBy       Admin?             @relation("SupplierReviewedBy", fields: [reviewedById], references: [id])
 }
 
 model SupplierDocument {

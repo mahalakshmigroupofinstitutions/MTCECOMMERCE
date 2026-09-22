@@ -6,22 +6,26 @@ export interface OnboardingSummaryRow {
   value: ReactNode;
 }
 
+/** Read-only key/value block. Used by the vendor's own review step (with an
+ * Edit link) and by the admin submission detail page (without one). */
 export function OnboardingSummarySection({
   title,
   editHref,
   rows,
 }: {
   title: string;
-  editHref: string;
+  editHref?: string;
   rows: OnboardingSummaryRow[];
 }) {
   return (
     <div className="rounded-2xl border border-line p-5">
       <div className="flex items-center justify-between">
         <h2 className="text-[13.5px] font-extrabold text-ink">{title}</h2>
-        <Link href={editHref} className="text-[12.5px] font-bold text-ink underline">
-          Edit
-        </Link>
+        {editHref && (
+          <Link href={editHref} className="text-[12.5px] font-bold text-ink underline">
+            Edit
+          </Link>
+        )}
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
         {rows.map((row) => (
