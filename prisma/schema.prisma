@@ -337,6 +337,7 @@ model Product {
 }
 
 enum RfqStatus {
+  DRAFT
   OPEN
   QUOTED
   CLOSED
@@ -348,8 +349,16 @@ model RFQ {
   productId          String?
   categoryId         String?
   quantity           String
+  uom                String?
   notes              String?
+  targetPrice        String?
+  concession         String?
+  deliveryTimeline   String?
+  deliveryMode       String?
+  paymentTerms       String?
+  specSheetUrl       String?
   targetDeliveryDate DateTime?
+  submissionDeadline DateTime?
   status             RfqStatus @default(OPEN)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

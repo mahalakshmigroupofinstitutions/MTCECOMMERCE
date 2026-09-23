@@ -1,12 +1,22 @@
 import { prisma } from "@/lib/prisma";
+import type { RfqStatus } from "@/lib/generated/prisma";
 
 export interface CreateRfqInput {
   buyerId: string;
   productId?: string;
   categoryId?: string;
   quantity: string;
+  uom?: string;
   notes?: string;
+  targetPrice?: string;
+  concession?: string;
+  deliveryTimeline?: string;
+  deliveryMode?: string;
+  paymentTerms?: string;
+  specSheetUrl?: string;
   targetDeliveryDate?: Date;
+  submissionDeadline?: Date;
+  status?: RfqStatus;
 }
 
 export async function createRfq(input: CreateRfqInput) {
