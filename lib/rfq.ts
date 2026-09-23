@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { RfqStatus } from "@/lib/generated/prisma";
+import type { RfqStatus } from "@/lib/generated/prisma/client";
 
 export interface CreateRfqInput {
   buyerId: string;
