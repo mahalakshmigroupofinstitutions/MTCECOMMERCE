@@ -21,5 +21,5 @@ export default async function EditVendorProductPage({
   const [product, categories] = await Promise.all([getVendorProductById(id, supplierId), getCategories()]);
   if (!product) notFound();
 
-  return <ProductForm categories={categories} product={product} error={error === "1"} />;
+  return <ProductForm categories={categories} product={product} error={error} />;
 }

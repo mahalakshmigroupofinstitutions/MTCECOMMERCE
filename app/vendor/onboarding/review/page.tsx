@@ -84,7 +84,7 @@ export default async function OnboardingReviewPage() {
           approved.
         </p>
         <form action={submitOnboardingForReviewAction} className="mt-4">
-          <SubmitButton pendingText="Submitting…" className={buttonClassName({ full: true, size: "lg" })}>
+          <SubmitButton pendingText="Submitting…" className={buttonClassName({ variant: "success", full: true, size: "lg" })}>
             Submit for admin verification
           </SubmitButton>
         </form>

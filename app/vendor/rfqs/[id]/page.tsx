@@ -132,7 +132,7 @@ export default async function VendorRfqDetailPage({
                 <div className="mb-1.5 text-[12.5px] font-bold text-ink">Note (optional)</div>
                 <input name="note" placeholder="e.g. Mill TC included · transport extra" className={inputClass} />
               </div>
-              <SubmitButton pendingText="Submitting…" className={buttonClassName({ full: true, size: "lg" })}>
+              <SubmitButton pendingText="Submitting…" className={buttonClassName({ variant: "success", full: true, size: "lg" })}>
                 Submit quote
               </SubmitButton>
             </form>

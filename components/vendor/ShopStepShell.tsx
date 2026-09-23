@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/icons/Icon";
-import { SubmitButton, buttonClassName } from "@/components/ui";
+import { SubmitButton, buttonClassName, type ButtonVariant } from "@/components/ui";
 import { ShopSetupNotice } from "./ShopSetupNotice";
 import { ShopSetupSteps } from "./ShopSetupSteps";
 import { SHOP_STEP_META } from "./shopSetupMeta";
@@ -60,10 +60,10 @@ export function ShopStepShell({
 export function ShopStepActions() {
   return (
     <div className="mt-2 flex flex-col gap-3 sm:flex-row-reverse sm:items-center">
-      <ShopStepSubmit intent="continue" variant="solid">
+      <ShopStepSubmit intent="continue" variant="success">
         Save &amp; continue
       </ShopStepSubmit>
-      <ShopStepSubmit intent="save" variant="outline">
+      <ShopStepSubmit intent="save" variant="secondary">
         Save &amp; finish later
       </ShopStepSubmit>
       <span className="text-[11.5px] text-faint sm:mr-auto">
@@ -79,7 +79,7 @@ function ShopStepSubmit({
   children,
 }: {
   intent: "continue" | "save";
-  variant: "solid" | "outline";
+  variant: ButtonVariant;
   children: ReactNode;
 }) {
   return (

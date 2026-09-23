@@ -52,7 +52,7 @@ export default async function VendorOrderDetailPage({ params }: { params: Promis
           </p>
           <form action={advanceVendorOrderStep} className="mt-3">
             <input type="hidden" name="orderId" value={order.id} />
-            <SubmitButton pendingText="Advancing…" className={buttonClassName({ variant: "outline", size: "sm" })}>
+            <SubmitButton pendingText="Advancing…" className={buttonClassName({ variant: "success", size: "sm" })}>
               {activeKey === "production" ? "Mark production complete" : "Mark as shipped"}
             </SubmitButton>
           </form>

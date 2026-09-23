@@ -84,7 +84,7 @@ export default async function OnboardingDocumentsPage({
           <FileInput id="companyLogo" name="companyLogo" accept="image/*" />
         </FormField>
 
-        <SubmitButton pendingText="Uploading…" className={buttonClassName({ full: true, size: "lg" })}>
+        <SubmitButton pendingText="Uploading…" className={buttonClassName({ variant: "success", full: true, size: "lg" })}>
           Continue
         </SubmitButton>
       </form>

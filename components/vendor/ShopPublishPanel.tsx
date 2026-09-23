@@ -89,7 +89,7 @@ export function ShopPublishPanel({
           <form action={unpublishShopAction}>
             <SubmitButton
               pendingText="Hiding…"
-              className={buttonClassName({ variant: "outline", size: "sm", full: true })}
+              className={buttonClassName({ variant: "secondary", size: "sm", full: true })}
             >
               Unpublish shop
             </SubmitButton>
@@ -106,7 +106,7 @@ export function ShopPublishPanel({
                 <form action={publishShopAction} className="flex-1">
                   <SubmitButton
                     pendingText="Publishing…"
-                    className={buttonClassName({ size: "sm", full: true })}
+                    className={buttonClassName({ variant: "success", size: "sm", full: true })}
                   >
                     Publish shop
                   </SubmitButton>
@@ -120,7 +120,7 @@ export function ShopPublishPanel({
               </div>
             </div>
           ) : (
-            <Link href="/vendor/shop?confirm=publish" className={buttonClassName({ size: "sm", full: true })}>
+            <Link href="/vendor/shop?confirm=publish" className={buttonClassName({ variant: "success", size: "sm", full: true })}>
               {wasUnpublished ? "Republish shop" : "Publish shop"}
             </Link>
           )

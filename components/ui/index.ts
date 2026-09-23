@@ -7,6 +7,7 @@ export { Button } from "./Button";
 export { Metric } from "./Metric";
 export { SubmitButton } from "./SubmitButton";
 export { buttonClassName, chipClassName, cardHoverClassName } from "./classNames";
+export type { ButtonVariant, ButtonSize } from "./classNames";
 export { Input, inputClassName } from "./Input";
 export { Textarea } from "./Textarea";
 export { Select } from "./Select";

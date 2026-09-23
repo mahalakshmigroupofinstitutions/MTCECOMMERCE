@@ -10,6 +10,24 @@
   --color-paper: #ffffff;
   --color-wash: #f6f5f2;
 
+  /* Category accents — vendor dashboard's restrained multi-accent system.
+   * Used only as small solid icon-chip fills, status dots, and genuinely
+   * urgent/positive metric text, never as full card/row background tints. */
+  --color-blue: oklch(58% 0.19 258);
+  --color-green: oklch(55% 0.14 155);
+  --color-amber: oklch(64% 0.15 70);
+  --color-purple: oklch(53% 0.20 302);
+  --color-red: oklch(56% 0.21 25);
+
+  /* Deal pipeline progression bar — deepens from neutral toward green as a
+   * stage gets closer to money actually landing (Paid/Shipped/Delivered). */
+  --color-pipe-1: var(--color-line);
+  --color-pipe-2: oklch(88% 0.05 155);
+  --color-pipe-3: oklch(78% 0.08 155);
+  --color-pipe-4: oklch(68% 0.11 155);
+  --color-pipe-5: oklch(60% 0.13 155);
+  --color-pipe-6: var(--color-green);
+
   --background: var(--color-paper);
   --foreground: var(--color-ink);
 }
@@ -24,6 +42,17 @@
   --color-line: var(--color-line);
   --color-paper: var(--color-paper);
   --color-wash: var(--color-wash);
+  --color-blue: var(--color-blue);
+  --color-green: var(--color-green);
+  --color-amber: var(--color-amber);
+  --color-purple: var(--color-purple);
+  --color-red: var(--color-red);
+  --color-pipe-1: var(--color-pipe-1);
+  --color-pipe-2: var(--color-pipe-2);
+  --color-pipe-3: var(--color-pipe-3);
+  --color-pipe-4: var(--color-pipe-4);
+  --color-pipe-5: var(--color-pipe-5);
+  --color-pipe-6: var(--color-pipe-6);
   --font-sans: var(--font-manrope);
   --font-mono: var(--font-jetbrains-mono);
 }

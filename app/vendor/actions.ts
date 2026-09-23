@@ -18,7 +18,8 @@ import {
 } from "@/lib/vendor";
 import { requireApprovedVendorId } from "@/lib/vendorAccess";
 import { advanceOrderStep } from "@/lib/orders";
-import { str, withErrorParam } from "@/lib/formData";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, saveVendorPublicImage, validateUpload } from "@/lib/localFileStorage";
+import { bool, file, str, withErrorParam } from "@/lib/formData";
 import type { ProductStatus } from "@/lib/generated/prisma/client";
 import { normalizePhone } from "@/lib/phone";
 import { ONBOARDING_STEPS } from "@/lib/vendorOnboarding";
@@ -155,9 +156,22 @@ export async function saveVendorProduct(formData: FormData) {
   const priceRaw = str(formData, "price");
   const moqRaw = str(formData, "moq");
   const moqUnit = str(formData, "moqUnit");
+  const editPath = productId ? `/vendor/products/${productId}/edit` : "/vendor/products/new";
 
   if (!title || !categoryId || !unit || !priceRaw || !moqRaw || !moqUnit) {
-    redirect(`${productId ? `/vendor/products/${productId}/edit` : "/vendor/products/new"}?error=1`);
+    redirect(`${editPath}?error=1`);
+  }
+
+  // undefined = leave the current photo alone, null = clear it (removeImage
+  // checked with no replacement), string = the newly uploaded photo's URL.
+  let imageUrl: string | null | undefined;
+  const imageFile = file(formData, "image");
+  if (imageFile) {
+    const rejection = validateUpload(imageFile, { allowed: ALLOWED_IMAGE_TYPES, maxBytes: MAX_IMAGE_BYTES });
+    if (rejection) redirect(`${editPath}?error=image`);
+    imageUrl = await saveVendorPublicImage(imageFile, supplierId!, "product");
+  } else if (bool(formData, "removeImage")) {
+    imageUrl = null;
   }
 
   const input = {
@@ -170,6 +184,7 @@ export async function saveVendorProduct(formData: FormData) {
     specs: parseLines(str(formData, "specs"), ":"),
     tiers: parseLines(str(formData, "tiers"), "|"),
     description: str(formData, "description"),
+    imageUrl,
   };
 
   if (productId) {

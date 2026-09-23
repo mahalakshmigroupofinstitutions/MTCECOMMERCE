@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
-import { Placeholder, buttonClassName, SubmitButton } from "@/components/ui";
+import { CatalogImage, buttonClassName, SubmitButton } from "@/components/ui";
 import { getCurrentSupplierId } from "@/lib/vendorSession";
 import { getVendorProducts } from "@/lib/vendor";
 import { deleteVendorProductAction, setVendorProductStatusAction } from "@/app/vendor/actions";
@@ -68,7 +68,7 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
             const meta = STATUS_META[p.status];
             return (
             <div key={p.id} className="flex flex-col gap-2 rounded-2xl border border-line p-2.5">
-              <Placeholder label={p.title} height={110} />
+              <CatalogImage src={p.imageUrl} label={p.title} height={110} />
               <div className="text-[12.5px] leading-tight font-bold text-ink">{p.title}</div>
               <div className="font-mono text-sm font-extrabold text-ink">
                 ₹{p.price.toLocaleString("en-IN")}
@@ -96,7 +96,7 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
                   <SubmitButton
                     pendingText={`${meta.next.action}ing…`}
                     className={buttonClassName({
-                      variant: p.status === "DRAFT" ? "solid" : "outline",
+                      variant: p.status === "DRAFT" ? "success" : "secondary",
                       size: "sm",
                       full: true,
                     })}
@@ -109,7 +109,7 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
               <div className="flex gap-2">
                 <Link
                   href={`/vendor/products/${p.id}/edit`}
-                  className={buttonClassName({ variant: "outline", size: "sm", full: true })}
+                  className={buttonClassName({ variant: "secondary", size: "sm", full: true })}
                 >
                   Edit
                 </Link>
@@ -117,7 +117,7 @@ export default async function VendorProductsPage({ searchParams }: { searchParam
                   <input type="hidden" name="productId" value={p.id} />
                   <SubmitButton
                     pendingText="Deleting…"
-                    className={buttonClassName({ variant: "outline", size: "sm", full: true })}
+                    className={buttonClassName({ variant: "danger", size: "sm", full: true })}
                   >
                     Delete
                   </SubmitButton>

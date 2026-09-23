@@ -105,7 +105,7 @@ export default async function OnboardingBusinessPage({
           <Input id="website" name="website" type="url" placeholder="https://" defaultValue={supplier.website ?? ""} />
         </FormField>
 
-        <SubmitButton pendingText="Saving…" className={buttonClassName({ full: true, size: "lg" })}>
+        <SubmitButton pendingText="Saving…" className={buttonClassName({ variant: "success", full: true, size: "lg" })}>
           Continue
         </SubmitButton>
       </form>
