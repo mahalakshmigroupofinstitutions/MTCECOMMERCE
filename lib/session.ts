@@ -47,10 +47,11 @@ export async function identifyBuyer(input: {
   companyName?: string;
   gstNumber?: string;
   city?: string;
+  state?: string;
 }) {
   const buyer = await prisma.buyer.upsert({
     where: { phone: input.phone },
-    update: { name: input.name, companyName: input.companyName, gstNumber: input.gstNumber, city: input.city },
+    update: { name: input.name, companyName: input.companyName, gstNumber: input.gstNumber, city: input.city, state: input.state },
     create: input,
   });
   await setBuyerSession(buyer.id);

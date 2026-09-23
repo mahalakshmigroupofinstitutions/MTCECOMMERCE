@@ -53,11 +53,46 @@ export interface CreateQuoteInput {
 
 export async function createQuote(input: CreateQuoteInput) {
   const rfq = await prisma.rFQ.findUniqueOrThrow({ where: { id: input.rfqId } });
-  const quote = await prisma.quote.create({ data: input });
+  const quote = await prisma.quote.create({
+    data: { ...input, source: "RFQ", verified: true },
+  });
   if (rfq.status === "OPEN") {
     await prisma.rFQ.update({ where: { id: input.rfqId }, data: { status: "QUOTED" } });
   }
   return quote;
+}
+
+export interface CreateQuoteFromProductInput {
+  productId: string;
+  supplierId: string;
+  price: number;
+  unit: string;
+  moq?: string;
+  delivery?: string;
+  payment?: string;
+  validUntil?: Date;
+  note?: string;
+}
+
+/** Auto-generated the moment a vendor publishes a product. Starts unverified —
+ * the vendor must confirm price/terms (see verifyQuote) before a buyer can see it. */
+export async function createQuoteFromProduct(input: CreateQuoteFromProductInput) {
+  return prisma.quote.create({
+    data: { ...input, source: "PRODUCT", verified: false },
+  });
+}
+
+/** Vendor confirms an auto-generated quote's price/terms, optionally editing them
+ * first. Only meaningful for PRODUCT-sourced quotes; RFQ-sourced ones are already
+ * verified: true at creation. */
+export async function verifyQuote(
+  quoteId: string,
+  updates?: Partial<Pick<CreateQuoteFromProductInput, "price" | "unit" | "moq" | "delivery" | "payment" | "validUntil" | "note">>
+) {
+  return prisma.quote.update({
+    where: { id: quoteId },
+    data: { ...updates, verified: true },
+  });
 }
 
 /** Best-effort: pulls the leading number out of a free-text quantity like "25 tons". */
@@ -76,30 +111,50 @@ const ORDER_STEPS = [
   { key: "delivered", label: "Delivered" },
 ];
 
-/** Accepting a quote closes the RFQ, auto-rejects competing pending quotes, and
- * creates the Order (+ its 5-step tracking timeline) that Phase 5 builds a real UI for. */
-export async function acceptQuote(quoteId: string) {
+/** Accepting a quote closes the RFQ (if any), auto-rejects competing pending
+ * quotes on the same RFQ or product, and creates the Order (+ its 5-step
+ * tracking timeline). Works for both RFQ-sourced and PRODUCT-sourced quotes —
+ * a PRODUCT-sourced quote has no `rfq`, so buyerId/quantity must be supplied
+ * by the caller (the buyer doing the selecting) instead of read off the RFQ. */
+export async function acceptQuote(
+  quoteId: string,
+  productQuoteContext?: { buyerId: string; quantity: string }
+) {
   return prisma.$transaction(async (tx) => {
     const quote = await tx.quote.findUniqueOrThrow({ where: { id: quoteId }, include: { rfq: true } });
 
-    const qty = parseLeadingNumber(quote.rfq.quantity);
+    if (!quote.rfq && !productQuoteContext) {
+      throw new Error("acceptQuote: productQuoteContext is required for a PRODUCT-sourced quote");
+    }
+
+    const buyerId = quote.rfq ? quote.rfq.buyerId : productQuoteContext!.buyerId;
+    const quantity = quote.rfq ? quote.rfq.quantity : productQuoteContext!.quantity;
+    const productId = quote.rfq ? quote.rfq.productId : quote.productId;
+
+    const qty = parseLeadingNumber(quantity);
     const total = qty !== null ? Math.round(qty * quote.price) : quote.price;
 
     await tx.quote.update({ where: { id: quoteId }, data: { status: "ACCEPTED" } });
     await tx.quote.updateMany({
-      where: { rfqId: quote.rfqId, id: { not: quoteId }, status: "PENDING" },
+      where: {
+        id: { not: quoteId },
+        status: "PENDING",
+        ...(quote.rfqId ? { rfqId: quote.rfqId } : { productId: quote.productId }),
+      },
       data: { status: "REJECTED" },
     });
-    await tx.rFQ.update({ where: { id: quote.rfqId }, data: { status: "CLOSED" } });
+    if (quote.rfqId) {
+      await tx.rFQ.update({ where: { id: quote.rfqId }, data: { status: "CLOSED" } });
+    }
 
     const order = await tx.order.create({
       data: {
         rfqId: quote.rfqId,
         quoteId: quote.id,
-        buyerId: quote.rfq.buyerId,
+        buyerId,
         supplierId: quote.supplierId,
-        productId: quote.rfq.productId,
-        quantity: quote.rfq.quantity,
+        productId,
+        quantity,
         total,
         status: "CONFIRMED",
         paymentStatus: "PENDING",

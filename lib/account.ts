@@ -5,6 +5,7 @@ export interface UpdateBuyerProfileInput {
   companyName?: string;
   gstNumber?: string;
   city?: string;
+  state?: string;
 }
 
 export async function updateBuyerProfile(buyerId: string, input: UpdateBuyerProfileInput) {

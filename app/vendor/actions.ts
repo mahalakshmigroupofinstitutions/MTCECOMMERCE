@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import {
   identifyVendor,
   getCurrentSupplierId,
@@ -8,7 +9,7 @@ import {
   registerVendor,
   loginVendorWithPassword,
 } from "@/lib/vendorSession";
-import { createQuote } from "@/lib/rfq";
+import { createQuote, verifyQuote } from "@/lib/rfq";
 import {
   createVendorProduct,
   updateVendorProduct,
@@ -143,6 +144,32 @@ export async function submitVendorQuote(formData: FormData) {
   });
 
   redirect(`/vendor/rfqs/${rfqId}`);
+}
+
+/** Vendor confirms (optionally editing) an auto-generated product quote. Scoped
+ * by supplierId so a guessed quoteId belonging to another vendor is rejected. */
+export async function verifyQuoteAction(formData: FormData) {
+  const supplierId = await getCurrentSupplierId();
+  if (!supplierId) redirect("/vendor/login");
+
+  const quoteId = str(formData, "quoteId");
+  if (!quoteId) redirect("/vendor/quotes?error=1");
+
+  const quote = await prisma.quote.findFirst({ where: { id: quoteId, supplierId } });
+  if (!quote) redirect("/vendor/quotes?error=1");
+
+  const priceRaw = str(formData, "price");
+  const unit = str(formData, "unit");
+
+  await verifyQuote(quoteId!, {
+    price: priceRaw ? Math.round(Number(priceRaw)) : undefined,
+    unit,
+    delivery: str(formData, "delivery"),
+    payment: str(formData, "payment"),
+    note: str(formData, "note"),
+  });
+
+  redirect("/vendor/quotes");
 }
 
 export async function saveVendorProduct(formData: FormData) {

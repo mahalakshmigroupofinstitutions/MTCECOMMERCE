@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
+import { InvoiceCard } from "@/components/orders/InvoiceCard";
 import { getCurrentSupplierId } from "@/lib/vendorSession";
 import { getVendorOrderById } from "@/lib/vendor";
 import { advanceVendorOrderStep } from "@/app/vendor/actions";
@@ -33,6 +34,15 @@ export default async function VendorOrderDetailPage({ params }: { params: Promis
         {order.placedAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
       </div>
       <div className="mt-3 font-mono text-2xl font-extrabold text-ink">₹{order.total.toLocaleString("en-IN")}</div>
+
+      {order.invoice && (
+        <InvoiceCard
+          invoice={{ ...order.invoice, issuedAt: order.invoice.issuedAt.toISOString() }}
+          orderId={order.id}
+          buyerState={order.buyer.state}
+          supplierState={order.supplier.state}
+        />
+      )}
 
       {isDelivered && (
         <div className="mt-5 flex items-center gap-2 rounded-2xl bg-ink p-4 font-extrabold text-white">

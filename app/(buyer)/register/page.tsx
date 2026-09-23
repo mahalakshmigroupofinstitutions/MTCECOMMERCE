@@ -38,6 +38,7 @@ export default async function RegisterPage({
         <input name="companyName" placeholder="Company name (optional)" className={inputClass} />
         <input name="gstNumber" placeholder="GST number (optional)" className={inputClass} />
         <input name="city" placeholder="City (optional)" className={inputClass} />
+        <input name="state" placeholder="State (optional)" className={inputClass} />
         <SubmitButton pendingText="Creating account…" className={buttonClassName({ full: true })}>
           Create account
         </SubmitButton>
