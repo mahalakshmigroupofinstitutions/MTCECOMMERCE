@@ -18,12 +18,14 @@ model Buyer {
   companyName String?
   gstNumber   String?
   city        String?
+  state       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   rfqs           RFQ[]
   orders         Order[]
   savedSuppliers SavedSupplier[]
+  invoices       Invoice[]
 }
 
 model Category {
@@ -140,6 +142,7 @@ model Supplier {
   bankDetail       SupplierBankDetail?
   shop             Shop?
   reviewedBy       Admin?             @relation("SupplierReviewedBy", fields: [reviewedById], references: [id])
+  invoices         Invoice[]
 }
 
 model SupplierDocument {
@@ -329,6 +332,7 @@ model Product {
   category Category @relation(fields: [categoryId], references: [id])
   rfqs     RFQ[]
   orders   Order[]
+  quotes   Quote[]
 
   @@unique([supplierId, sku])
   @@index([categoryId])
@@ -337,6 +341,7 @@ model Product {
 }
 
 enum RfqStatus {
+  DRAFT
   OPEN
   QUOTED
   CLOSED
@@ -348,8 +353,16 @@ model RFQ {
   productId          String?
   categoryId         String?
   quantity           String
+  uom                String?
   notes              String?
+  targetPrice        String?
+  concession         String?
+  deliveryTimeline   String?
+  deliveryMode       String?
+  paymentTerms       String?
+  specSheetUrl       String?
   targetDeliveryDate DateTime?
+  submissionDeadline DateTime?
   status             RfqStatus @default(OPEN)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -369,9 +382,21 @@ enum QuoteStatus {
   REJECTED
 }
 
+/// Where a Quote originated. RFQ = buyer asked, vendor quoted (existing flow).
+/// PRODUCT = auto-generated the moment a vendor publishes a product, with no
+/// buyer request behind it yet.
+enum QuoteSource {
+  RFQ
+  PRODUCT
+}
+
 model Quote {
   id         String      @id @default(cuid())
-  rfqId      String
+  /// Nullable now: a PRODUCT-sourced quote has no RFQ behind it.
+  rfqId      String?
+  /// Set only for PRODUCT-sourced quotes.
+  productId  String?
+  source     QuoteSource @default(RFQ)
   supplierId String
   price      Int
   unit       String
@@ -382,14 +407,19 @@ model Quote {
   best       Boolean     @default(false)
   note       String?
   status     QuoteStatus @default(PENDING)
+  /// Vendor has confirmed price/terms on an auto-generated quote. Always true
+  /// for RFQ-sourced quotes (vendor typed the price themselves).
+  verified   Boolean     @default(false)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
-  rfq      RFQ      @relation(fields: [rfqId], references: [id])
+  rfq      RFQ?     @relation(fields: [rfqId], references: [id])
+  product  Product? @relation(fields: [productId], references: [id])
   supplier Supplier @relation(fields: [supplierId], references: [id])
   order    Order?
 
   @@index([rfqId])
+  @@index([productId])
 }
 
 enum OrderStatus {
@@ -429,6 +459,7 @@ model Order {
   rfq      RFQ?      @relation(fields: [rfqId], references: [id])
   quote    Quote?    @relation(fields: [quoteId], references: [id])
   steps    OrderStep[]
+  invoice  Invoice?
 
   @@index([buyerId])
   @@index([supplierId])
@@ -447,6 +478,46 @@ model OrderStep {
   order Order @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
+}
+
+/// One row per (docType, year) — e.g. ("INVOICE", 2026). lastNumber is bumped
+/// inside a transaction so two concurrent invoice creations never collide.
+model DocumentCounter {
+  id         String   @id @default(cuid())
+  docType    String
+  year       Int
+  lastNumber Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([docType, year])
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+/// Generated once an Order's payment succeeds. One invoice per order, visible
+/// to both the buyer and the supplier on that order.
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  orderId       String        @unique
+  buyerId       String
+  supplierId    String
+  amount        Int
+  status        InvoiceStatus @default(ISSUED)
+  issuedAt      DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  order    Order    @relation(fields: [orderId], references: [id])
+  buyer    Buyer    @relation(fields: [buyerId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([buyerId])
+  @@index([supplierId])
 }
 
 model SavedSupplier {

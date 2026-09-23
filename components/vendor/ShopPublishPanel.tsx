@@ -121,7 +121,6 @@ export function ShopPublishPanel({
             </div>
           ) : (
             <Link href="/vendor/shop?confirm=publish" className={buttonClassName({ variant: "success", size: "sm", full: true })}>
-
               {wasUnpublished ? "Republish shop" : "Publish shop"}
             </Link>
           )
