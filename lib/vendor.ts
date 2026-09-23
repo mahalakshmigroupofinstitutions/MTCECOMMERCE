@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { uniqueSlug } from "@/lib/slug";
 import { deleteVendorPublicImage } from "@/lib/localFileStorage";
+import { createQuoteFromProduct } from "@/lib/rfq";
 import type { ProductStatus } from "@/lib/generated/prisma/client";
 
 /** Whether the vendor has cleared verification. Lives here, next to the data it
@@ -98,10 +99,29 @@ export interface VendorProductInput {
   imageUrl?: string | null;
 }
 
+/** Creating a product also auto-generates a draft (unverified) Quote for it,
+ * seeded from the product's own price/unit/MOQ — see the quotation-invoice
+ * flow. The vendor confirms it later via verifyQuote(). A failure here must
+ * not block the product from being created, so it's best-effort and logged
+ * rather than thrown. */
 export async function createVendorProduct(supplierId: string, input: VendorProductInput) {
-  return prisma.product.create({
+  const product = await prisma.product.create({
     data: { ...input, supplierId, slug: uniqueSlug(input.title) },
   });
+
+  try {
+    await createQuoteFromProduct({
+      productId: product.id,
+      supplierId,
+      price: input.price,
+      unit: input.unit,
+      moq: `${input.moq} ${input.moqUnit}`,
+    });
+  } catch (err) {
+    console.error(`Failed to auto-generate quote for product ${product.id}:`, err);
+  }
+
+  return product;
 }
 
 export async function updateVendorProduct(id: string, supplierId: string, input: VendorProductInput) {
@@ -126,17 +146,27 @@ export async function setVendorProductStatus(id: string, supplierId: string, sta
   if (count === 0) throw new Error("Product not found or not owned by this vendor");
 }
 
+/** Product-sourced quotes the vendor hasn't confirmed yet — the "Quotes to
+ * verify" queue at /vendor/quotes. RFQ-sourced quotes never appear here since
+ * they're verified: true from the moment the vendor typed the price. */
+export async function getVendorUnverifiedQuotes(supplierId: string) {
+  return prisma.quote.findMany({
+    where: { supplierId, source: "PRODUCT", verified: false },
+    include: { product: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export async function deleteVendorProduct(id: string, supplierId: string) {
   const existing = await prisma.product.findFirst({ where: { id, supplierId } });
   if (!existing) throw new Error("Product not found or not owned by this vendor");
   return prisma.product.delete({ where: { id } });
 }
 
-export async function getVendorOrders(supplierId: string) {
-  return prisma.order.findMany({
+export async function getVendorOrders(supplierId: string) {  return prisma.order.findMany({
     where: { supplierId },
     orderBy: { createdAt: "desc" },
-    include: { product: true, buyer: true, steps: { orderBy: { position: "asc" } } },
+  include: { product: true, buyer: true, supplier: true, invoice: true, steps: { orderBy: { position: "asc" } } },
   });
 }
 
@@ -145,7 +175,7 @@ export type VendorOrderSummary = Awaited<ReturnType<typeof getVendorOrders>>[num
 export async function getVendorOrderById(id: string, supplierId: string) {
   return prisma.order.findFirst({
     where: { id, supplierId },
-    include: { product: true, buyer: true, steps: { orderBy: { position: "asc" } } },
+    include: { product: true, buyer: true, supplier: true, invoice: true, steps: { orderBy: { position: "asc" } } },
   });
 }
 

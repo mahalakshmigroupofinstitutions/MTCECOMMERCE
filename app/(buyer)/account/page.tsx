@@ -72,6 +72,10 @@ export default async function AccountPage({
               <div className="mb-1.5 text-[12px] font-bold text-ink">City</div>
               <input name="city" defaultValue={buyer?.city ?? ""} className={inputClass} />
             </div>
+            <div className="flex-1">
+              <div className="mb-1.5 text-[12px] font-bold text-ink">State</div>
+              <input name="state" defaultValue={buyer?.state ?? ""} className={inputClass} />
+            </div>
           </div>
           <SubmitButton pendingText="Saving…" className={`${buttonClassName({ size: "sm" })} self-start`}>
             Save changes

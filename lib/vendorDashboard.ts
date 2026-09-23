@@ -107,7 +107,7 @@ export async function getDealPipeline(supplierId: string): Promise<DealPipelineS
   // computes an order's total the same way) — the RFQ's quantity has to be
   // parsed and multiplied in to get an actual rupee value, never summed raw.
   const quoteTotal = (q: (typeof quotes)[number]) => {
-    const qty = parseLeadingNumber(q.rfq.quantity);
+    const qty = q.rfq ? parseLeadingNumber(q.rfq.quantity) : null;
     return qty !== null ? Math.round(qty * q.price) : q.price;
   };
   const accepted = quotes.filter((q) => q.status === "ACCEPTED");

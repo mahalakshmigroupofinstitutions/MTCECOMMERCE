@@ -26,6 +26,7 @@ export async function registerBuyer(formData: FormData) {
     companyName: str(formData, "companyName"),
     gstNumber: str(formData, "gstNumber"),
     city: str(formData, "city"),
+    state: str(formData, "state"),
   });
 
   redirect(next);
@@ -61,6 +62,7 @@ export async function updateProfile(formData: FormData) {
     companyName: str(formData, "companyName"),
     gstNumber: str(formData, "gstNumber"),
     city: str(formData, "city"),
+    state: str(formData, "state"),
   });
 
   redirect("/account");
