@@ -1,14 +1,17 @@
 import { DesktopHeader } from "@/components/layout/DesktopHeader";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
-import { getCurrentBuyerId } from "@/lib/session";
+import { getCurrentBuyer } from "@/lib/session";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
-  const authed = Boolean(await getCurrentBuyerId());
+  // One query covers both "is a buyer signed in" and, when yes, the name/
+  // company the header's account menu shows — no second lookup needed.
+  const buyer = await getCurrentBuyer();
+  const authed = Boolean(buyer);
   return (
     <div className="flex min-h-full flex-col">
-      <DesktopHeader authed={authed} />
+      <DesktopHeader authed={authed} buyerName={buyer?.name ?? null} buyerCompanyName={buyer?.companyName ?? null} />
       <main className="flex-1 pb-20 md:pb-0">{children}</main>
-      <MobileTabBar />
+      <MobileTabBar authed={authed} />
     </div>
   );
 }
