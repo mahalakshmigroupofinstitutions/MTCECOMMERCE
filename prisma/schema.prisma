@@ -19,6 +19,10 @@ model Buyer {
   gstNumber   String?
   city        String?
   state       String?
+  /// Set only once phone OTP verification succeeds (see BuyerOtp). Never set
+  /// by the old find-or-create paths (guest RFQ, etc.) — those still leave a
+  /// buyer unverified, which is correct since they never proved the number.
+  phoneVerifiedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -26,6 +30,30 @@ model Buyer {
   orders         Order[]
   savedSuppliers SavedSupplier[]
   invoices       Invoice[]
+}
+
+enum BuyerOtpPurpose {
+  REGISTER
+  LOGIN
+}
+
+/// Phone OTP for buyer registration/login. One row per requested code — never
+/// updated in place except to bump `attempts` or set `consumedAt`. A code is
+/// usable only while `consumedAt` is null, `expiresAt` is in the future, and
+/// `attempts` is under the verify cap; all three are re-checked at verify time
+/// rather than trusted from when the row was created.
+model BuyerOtp {
+  id         String          @id @default(cuid())
+  phone      String
+  purpose    BuyerOtpPurpose
+  /// bcrypt hash only — the raw 6-digit code is never persisted.
+  codeHash   String
+  attempts   Int             @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime        @default(now())
+
+  @@index([phone, purpose])
 }
 
 model Category {

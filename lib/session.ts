@@ -58,6 +58,38 @@ export async function identifyBuyer(input: {
   return buyer;
 }
 
+/** The OTP-gated counterpart to identifyBuyer(): only ever called after
+ * lib/buyerOtp.ts's verifyBuyerOtp() has confirmed the phone, so this is the
+ * one place a Buyer's phoneVerifiedAt gets set. Deliberately a separate
+ * function rather than a flag on identifyBuyer() — the guest-RFQ flow and any
+ * other existing caller of identifyBuyer() must keep creating unverified
+ * buyers exactly as before. */
+export async function completeBuyerRegistration(input: {
+  phone: string;
+  name: string;
+  companyName?: string;
+  gstNumber?: string;
+  city?: string;
+  state?: string;
+}) {
+  const verifiedAt = new Date();
+  const data = {
+    name: input.name,
+    companyName: input.companyName,
+    gstNumber: input.gstNumber,
+    city: input.city,
+    state: input.state,
+    phoneVerifiedAt: verifiedAt,
+  };
+  const buyer = await prisma.buyer.upsert({
+    where: { phone: input.phone },
+    update: data,
+    create: { phone: input.phone, ...data },
+  });
+  await setBuyerSession(buyer.id);
+  return buyer;
+}
+
 /** Logs into an existing Buyer by phone. Returns null (no session set) if none exists. */
 export async function loginExistingBuyer(phone: string) {
   const buyer = await prisma.buyer.findUnique({ where: { phone } });

@@ -1,52 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import {
-  getCurrentBuyerId,
-  identifyBuyer,
-  loginExistingBuyer,
-  clearBuyerSession,
-} from "@/lib/session";
+import { getCurrentBuyerId, clearBuyerSession } from "@/lib/session";
 import { updateBuyerProfile, toggleSavedSupplier } from "@/lib/account";
-import { normalizePhone } from "@/lib/phone";
-import { str, withErrorParam as withError } from "@/lib/formData";
+import { str } from "@/lib/formData";
 
-export async function registerBuyer(formData: FormData) {
-  const name = str(formData, "name");
-  const phone = normalizePhone(str(formData, "phone"));
-  const next = str(formData, "next") ?? "/account";
-
-  if (!name || !phone) {
-    redirect(withError("/register", "identify"));
-  }
-
-  await identifyBuyer({
-    phone: phone!,
-    name: name!,
-    companyName: str(formData, "companyName"),
-    gstNumber: str(formData, "gstNumber"),
-    city: str(formData, "city"),
-    state: str(formData, "state"),
-  });
-
-  redirect(next);
-}
-
-export async function loginBuyer(formData: FormData) {
-  const phone = normalizePhone(str(formData, "phone"));
-  const next = str(formData, "next") ?? "/account";
-
-  if (!phone) {
-    redirect(withError("/login", "identify"));
-  }
-
-  const buyer = await loginExistingBuyer(phone!);
-  if (!buyer) {
-    redirect(`/register?next=${encodeURIComponent(next)}&error=notfound`);
-  }
-
-  redirect(next);
-}
+// Registration lives in app/(buyer)/register/actions.ts (OTP-gated) and login
+// lives in app/(buyer)/login/actions.ts (OTP-gated) — this file only keeps the
+// actions specific to an already-authenticated buyer's account page. Neither
+// flow creates a Buyer or session from a bare phone number anymore.
 
 export async function logoutBuyer() {
   await clearBuyerSession();
@@ -71,7 +33,10 @@ export async function updateProfile(formData: FormData) {
 export async function toggleSaveSupplierAction(formData: FormData) {
   const supplierId = str(formData, "supplierId");
   const supplierSlug = str(formData, "supplierSlug") ?? "";
-  const backTo = `/supplier/${supplierSlug}`;
+  // Defaults to the supplier's own page (where this action started), but a
+  // caller like /saved-suppliers can pass its own path so removing a card
+  // there doesn't bounce the buyer away from the list they're looking at.
+  const backTo = str(formData, "backTo") ?? `/supplier/${supplierSlug}`;
   if (!supplierId) redirect(backTo);
 
   const buyerId = await getCurrentBuyerId();

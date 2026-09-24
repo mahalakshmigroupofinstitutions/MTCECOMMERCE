@@ -48,6 +48,23 @@ export async function getRfqWithQuotes(id: string) {
 
 export type RfqWithQuotes = NonNullable<Awaited<ReturnType<typeof getRfqWithQuotes>>>;
 
+/** Most recent quotes received across all of a buyer's RFQs, for the
+ * dashboard's "Recent Quotes" section. Unlike getRfqWithQuotes, this isn't
+ * scoped to one RFQ — it's quotes-first, ordered by when the supplier quoted,
+ * not by which requirement they belong to. Quote has no buyerId of its own,
+ * so this joins through rfq.buyerId (PRODUCT-sourced quotes have no rfq and
+ * are correctly excluded). */
+export async function getRecentQuotesForBuyer(buyerId: string, limit = 5) {
+  return prisma.quote.findMany({
+    where: { rfq: { buyerId } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: { supplier: true, rfq: { include: { product: true, category: true } } },
+  });
+}
+
+export type RecentBuyerQuote = Awaited<ReturnType<typeof getRecentQuotesForBuyer>>[number];
+
 export interface CreateQuoteInput {
   rfqId: string;
   supplierId: string;
