@@ -1,5 +1,22 @@
 import { prisma } from "@/lib/prisma";
 import type { RfqStatus } from "@/lib/generated/prisma/client";
+import type { Prisma } from "@/lib/generated/prisma/client";
+
+type Db = typeof prisma | Prisma.TransactionClient;
+
+/** Human-readable id for a Quote, e.g. "QTE-2026-000042". Same DocumentCounter
+ * pattern as Invoice.invoiceNumber (see lib/orders.ts) — one counter per
+ * (docType, year), bumped atomically so concurrent creations never collide.
+ * Takes `db` so callers can generate one inside their own transaction. */
+async function generateQuoteNumber(db: Db): Promise<string> {
+  const year = new Date().getFullYear();
+  const counter = await db.documentCounter.upsert({
+    where: { docType_year: { docType: "QUOTE", year } },
+    create: { docType: "QUOTE", year, lastNumber: 1 },
+    update: { lastNumber: { increment: 1 } },
+  });
+  return `QTE-${year}-${String(counter.lastNumber).padStart(6, "0")}`;
+}
 
 export interface CreateRfqInput {
   buyerId: string;
@@ -62,14 +79,17 @@ export interface CreateQuoteInput {
 }
 
 export async function createQuote(input: CreateQuoteInput) {
-  const rfq = await prisma.rFQ.findUniqueOrThrow({ where: { id: input.rfqId } });
-  const quote = await prisma.quote.create({
-    data: { ...input, source: "RFQ", verified: true },
+  return prisma.$transaction(async (tx) => {
+    const rfq = await tx.rFQ.findUniqueOrThrow({ where: { id: input.rfqId } });
+    const quoteNumber = await generateQuoteNumber(tx);
+    const quote = await tx.quote.create({
+      data: { ...input, source: "RFQ", verified: true, quoteNumber },
+    });
+    if (rfq.status === "OPEN") {
+      await tx.rFQ.update({ where: { id: input.rfqId }, data: { status: "QUOTED" } });
+    }
+    return quote;
   });
-  if (rfq.status === "OPEN") {
-    await prisma.rFQ.update({ where: { id: input.rfqId }, data: { status: "QUOTED" } });
-  }
-  return quote;
 }
 
 export interface CreateQuoteFromProductInput {
@@ -84,11 +104,15 @@ export interface CreateQuoteFromProductInput {
   note?: string;
 }
 
-/** Auto-generated the moment a vendor publishes a product. Starts unverified —
- * the vendor must confirm price/terms (see verifyQuote) before a buyer can see it. */
-export async function createQuoteFromProduct(input: CreateQuoteFromProductInput) {
-  return prisma.quote.create({
-    data: { ...input, source: "PRODUCT", verified: false },
+/** Created once a vendor confirms a product's Quotation Verification review
+ * (see ProductForm's create-mode review step) — so it's already verified: true
+ * by the time this runs; there's no separate post-hoc confirm step for new
+ * quotes anymore. Takes `db` so the caller can create it inside the same
+ * transaction as the Product row. */
+export async function createQuoteFromProduct(input: CreateQuoteFromProductInput, db: Db = prisma) {
+  const quoteNumber = await generateQuoteNumber(db);
+  return db.quote.create({
+    data: { ...input, source: "PRODUCT", verified: true, quoteNumber },
   });
 }
 

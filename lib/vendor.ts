@@ -99,36 +99,53 @@ export interface VendorProductInput {
   imageUrl?: string | null;
 }
 
-/** Creating a product also auto-generates a draft (unverified) Quote for it,
- * seeded from the product's own price/unit/MOQ — see the quotation-invoice
- * flow. The vendor confirms it later via verifyQuote(). A failure here must
- * not block the product from being created, so it's best-effort and logged
- * rather than thrown. */
+/** Creating a product also creates its Quote in the same transaction, already
+ * verified: true — the vendor reviewed price/unit/MOQ in the Quotation
+ * Verification step (ProductForm's review screen) before this ever runs, so
+ * unlike the old auto-draft flow a failure here must fail the whole submission
+ * rather than silently leave the product with no linked quote. */
 export async function createVendorProduct(supplierId: string, input: VendorProductInput) {
-  const product = await prisma.product.create({
-    data: { ...input, supplierId, slug: uniqueSlug(input.title) },
-  });
-
-  try {
-    await createQuoteFromProduct({
-      productId: product.id,
-      supplierId,
-      price: input.price,
-      unit: input.unit,
-      moq: `${input.moq} ${input.moqUnit}`,
+  return prisma.$transaction(async (tx) => {
+    const product = await tx.product.create({
+      data: { ...input, supplierId, slug: uniqueSlug(input.title) },
     });
-  } catch (err) {
-    console.error(`Failed to auto-generate quote for product ${product.id}:`, err);
-  }
 
-  return product;
+    await createQuoteFromProduct(
+      {
+        productId: product.id,
+        supplierId,
+        price: input.price,
+        unit: input.unit,
+        moq: `${input.moq} ${input.moqUnit}`,
+      },
+      tx
+    );
+
+    return product;
+  });
 }
 
+/** Editing a product syncs the shared fields (price/unit/MOQ) onto any of its
+ * still-PENDING quotes — ACCEPTED ones already became a frozen Order, REJECTED
+ * ones are dead, so neither should retroactively change. Title/specs/description
+ * aren't duplicated onto Quote at all (the quotes page reads them live off
+ * quote.product), so those already stay in sync with no extra code. Best-effort:
+ * a sync failure shouldn't cost the vendor their edit. */
 export async function updateVendorProduct(id: string, supplierId: string, input: VendorProductInput) {
   const existing = await prisma.product.findFirst({ where: { id, supplierId } });
   if (!existing) throw new Error("Product not found or not owned by this vendor");
 
   const updated = await prisma.product.update({ where: { id }, data: input });
+
+  try {
+    await prisma.quote.updateMany({
+      where: { productId: id, source: "PRODUCT", status: "PENDING" },
+      data: { price: input.price, unit: input.unit, moq: `${input.moq} ${input.moqUnit}` },
+    });
+  } catch (err) {
+    console.error(`Failed to sync quote(s) for product ${id}:`, err);
+  }
+
   // Only after the row committed — a failed update must not lose a live photo.
   if (input.imageUrl !== undefined && existing.imageUrl && existing.imageUrl !== input.imageUrl) {
     await deleteVendorPublicImage(existing.imageUrl);
@@ -146,9 +163,10 @@ export async function setVendorProductStatus(id: string, supplierId: string, sta
   if (count === 0) throw new Error("Product not found or not owned by this vendor");
 }
 
-/** Product-sourced quotes the vendor hasn't confirmed yet — the "Quotes to
- * verify" queue at /vendor/quotes. RFQ-sourced quotes never appear here since
- * they're verified: true from the moment the vendor typed the price. */
+/** Product-sourced quotes the vendor hasn't confirmed yet. Normally empty now
+ * that new product quotes are verified up front during the Quotation
+ * Verification review step — this only ever matches legacy rows created
+ * before that existed. Kept so those don't get stranded unconfirmed forever. */
 export async function getVendorUnverifiedQuotes(supplierId: string) {
   return prisma.quote.findMany({
     where: { supplierId, source: "PRODUCT", verified: false },
@@ -156,6 +174,19 @@ export async function getVendorUnverifiedQuotes(supplierId: string) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+/** Every quote this vendor has, of either source and any status — the
+ * persistent Quotations page at /vendor/quotes. Unlike getVendorUnverifiedQuotes,
+ * a quote never drops out of this list once verified/accepted/rejected. */
+export async function getVendorQuotes(supplierId: string) {
+  return prisma.quote.findMany({
+    where: { supplierId },
+    include: { product: true, rfq: { include: { buyer: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export type VendorQuote = Awaited<ReturnType<typeof getVendorQuotes>>[number];
 
 export async function deleteVendorProduct(id: string, supplierId: string) {
   const existing = await prisma.product.findFirst({ where: { id, supplierId } });

@@ -217,7 +217,12 @@ export async function saveVendorProduct(formData: FormData) {
   if (productId) {
     await updateVendorProduct(productId, supplierId!, input);
   } else {
-    await createVendorProduct(supplierId!, input);
+    try {
+      await createVendorProduct(supplierId!, input);
+    } catch (err) {
+      console.error("Failed to create product + quotation:", err);
+      redirect(`${editPath}?error=1`);
+    }
   }
 
   redirect("/vendor/products");
