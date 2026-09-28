@@ -2,7 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSupplierId } from "@/lib/vendorSession";
-import { saveVendorDocument, saveVendorLogo } from "@/lib/localFileStorage";
+import { deleteVendorPrivateFile, deleteVendorPublicImage, saveVendorDocument, saveVendorLogo } from "@/lib/localFileStorage";
 import { sendVendorApplicationSubmittedEmailStub } from "@/lib/mailer";
 import type {
   Prisma,
@@ -86,7 +86,13 @@ export async function saveOnboardingDocuments(
 ) {
   for (const doc of input.documents) {
     const saved = await saveVendorDocument(doc.file, supplierId);
-    await prisma.supplierDocument.create({ data: { supplierId, type: doc.type, ...saved } });
+    try {
+      await prisma.supplierDocument.create({ data: { supplierId, type: doc.type, ...saved } });
+    } catch (err) {
+      // The row never committed — don't leave the just-uploaded document orphaned.
+      await deleteVendorPrivateFile(saved.filePath);
+      throw err;
+    }
   }
 
   const extra: Record<string, unknown> = {};
@@ -94,7 +100,12 @@ export async function saveOnboardingDocuments(
     extra.imageUrl = await saveVendorLogo(input.companyLogo, supplierId);
   }
 
-  return markStepComplete(supplierId, 1, extra);
+  try {
+    return await markStepComplete(supplierId, 1, extra);
+  } catch (err) {
+    if (typeof extra.imageUrl === "string") await deleteVendorPublicImage(extra.imageUrl);
+    throw err;
+  }
 }
 
 export async function getSupplierDocuments(supplierId: string) {

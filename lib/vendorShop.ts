@@ -322,9 +322,11 @@ export async function saveShopBranding(supplierId: string, input: ShopBrandingIn
 
   const data: Prisma.ShopUpdateInput = {};
   const orphaned: (string | null)[] = [];
+  const uploaded: string[] = [];
 
   if (input.logo) {
     data.logoUrl = await saveVendorPublicImage(input.logo, supplierId, "shop-logo");
+    uploaded.push(data.logoUrl);
     orphaned.push(shop.logoUrl);
   } else if (input.removeLogo) {
     data.logoUrl = null;
@@ -333,6 +335,7 @@ export async function saveShopBranding(supplierId: string, input: ShopBrandingIn
 
   if (input.banner) {
     data.bannerUrl = await saveVendorPublicImage(input.banner, supplierId, "shop-banner");
+    uploaded.push(data.bannerUrl);
     orphaned.push(shop.bannerUrl);
   } else if (input.removeBanner) {
     data.bannerUrl = null;
@@ -341,7 +344,13 @@ export async function saveShopBranding(supplierId: string, input: ShopBrandingIn
 
   data.brandColor = input.brandColor ?? null;
 
-  await prisma.shop.update({ where: { supplierId }, data });
+  try {
+    await prisma.shop.update({ where: { supplierId }, data });
+  } catch (err) {
+    // The row never committed — don't leave the just-uploaded replacement(s) orphaned.
+    await Promise.all(uploaded.map(deleteVendorPublicImage));
+    throw err;
+  }
   // Only after the row committed — a failed update must not lose a live image.
   await Promise.all(orphaned.map(deleteVendorPublicImage));
 
@@ -509,9 +518,15 @@ export async function addShopCertification(
   if (rejection) return { error: rejection === "type" ? "fileType" : "fileSize" };
 
   const saved = await saveVendorShopCertification(input.file, supplierId);
-  await prisma.shopCertification.create({
-    data: { shopId: shop.id, type: input.type, title: input.title ?? null, ...saved },
-  });
+  try {
+    await prisma.shopCertification.create({
+      data: { shopId: shop.id, type: input.type, title: input.title ?? null, ...saved },
+    });
+  } catch (err) {
+    // The row never committed — don't leave the just-uploaded file orphaned.
+    await deleteVendorPrivateFile(saved.filePath);
+    throw err;
+  }
 
   return { shop: await syncShopState(shop.id) };
 }
@@ -536,17 +551,26 @@ export async function updateShopCertification(
   };
 
   let replaced: string | null = null;
+  let uploaded: string | null = null;
   if (input.file) {
     const rejection = validateUpload(input.file, {
       allowed: ALLOWED_CERTIFICATION_TYPES,
       maxBytes: MAX_CERTIFICATION_BYTES,
     });
     if (rejection) return { error: rejection === "type" ? "fileType" : "fileSize" };
-    Object.assign(data, await saveVendorShopCertification(input.file, supplierId));
+    const saved = await saveVendorShopCertification(input.file, supplierId);
+    Object.assign(data, saved);
+    uploaded = saved.filePath;
     replaced = existing.filePath;
   }
 
-  await prisma.shopCertification.update({ where: { id: certificationId }, data });
+  try {
+    await prisma.shopCertification.update({ where: { id: certificationId }, data });
+  } catch (err) {
+    // The row never committed — don't leave the just-uploaded replacement orphaned.
+    if (uploaded) await deleteVendorPrivateFile(uploaded);
+    throw err;
+  }
   if (replaced) await deleteVendorPrivateFile(replaced);
 
   return { shop: await syncShopState(existing.shopId) };
