@@ -19,7 +19,13 @@ import {
 } from "@/lib/vendor";
 import { requireApprovedVendorId } from "@/lib/vendorAccess";
 import { advanceOrderStep } from "@/lib/orders";
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, saveVendorPublicImage, validateUpload } from "@/lib/localFileStorage";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_BYTES,
+  deleteVendorPublicImage,
+  saveVendorPublicImage,
+  validateUpload,
+} from "@/lib/localFileStorage";
 import { bool, file, str, withErrorParam } from "@/lib/formData";
 import type { ProductStatus } from "@/lib/generated/prisma/client";
 import { normalizePhone } from "@/lib/phone";
@@ -214,15 +220,17 @@ export async function saveVendorProduct(formData: FormData) {
     imageUrl,
   };
 
-  if (productId) {
-    await updateVendorProduct(productId, supplierId!, input);
-  } else {
-    try {
+  try {
+    if (productId) {
+      await updateVendorProduct(productId, supplierId!, input);
+    } else {
       await createVendorProduct(supplierId!, input);
-    } catch (err) {
-      console.error("Failed to create product + quotation:", err);
-      redirect(`${editPath}?error=1`);
     }
+  } catch (err) {
+    // The row never committed — don't leave the just-uploaded image orphaned.
+    if (imageUrl) await deleteVendorPublicImage(imageUrl);
+    console.error("Failed to save product:", err);
+    redirect(`${editPath}?error=1`);
   }
 
   redirect("/vendor/products");

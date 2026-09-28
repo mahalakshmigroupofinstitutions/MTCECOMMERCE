@@ -14,11 +14,22 @@ datasource db {
 model Buyer {
   id          String   @id @default(cuid())
   phone       String   @unique
+  /// Dial code the phone number was captured with, e.g. "+91" — the stored
+  /// `phone` itself is unchanged (still the full normalizePhone() result);
+  /// this is only so the edit form can pre-select the right country-code
+  /// option instead of re-guessing it from the digits.
+  phoneCountryCode String?
   name        String?
   companyName String?
   gstNumber   String?
+  addressLine1 String?
+  addressLine2 String?
+  /// Country name (e.g. "India"), not an ISO code — kept human-readable, the
+  /// same convention `city`/`state` below already use.
+  country     String?
   city        String?
   state       String?
+  pincode     String?
   /// Set only once phone OTP verification succeeds (see BuyerOtp). Never set
   /// by the old find-or-create paths (guest RFQ, etc.) — those still leave a
   /// buyer unverified, which is correct since they never proved the number.

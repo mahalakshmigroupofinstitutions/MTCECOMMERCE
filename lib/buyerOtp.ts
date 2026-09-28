@@ -31,9 +31,23 @@ const REQUEST_WINDOW_MINUTES = 15;
 
 const HASH_ROUNDS = 10;
 
+/** Fixed code used in place of a random one outside production — see
+ * generateOtpCode(). Zero-padded to CODE_DIGITS so it satisfies the same
+ * `/^\d{6}$/` shape the verify actions require in every environment; nothing
+ * about that check changes. */
+const DEV_FIXED_OTP_CODE = "006767";
+
 /** Cryptographically random, uniformly distributed 6-digit code (zero-padded).
- * `randomInt` is a CSPRNG (Node's crypto module) — not Math.random(). */
+ * `randomInt` is a CSPRNG (Node's crypto module) — not Math.random().
+ *
+ * Outside production, always returns DEV_FIXED_OTP_CODE instead: this is the
+ * only branch that changes for local/dev testing, mirroring the identical
+ * `NODE_ENV === "production"` gate lib/buyerOtpDelivery.ts already uses. The
+ * production branch — and everything downstream of whatever this returns
+ * (hashing, persistence, bcrypt comparison in verifyBuyerOtp, attempts,
+ * expiry, rate limiting) — is completely unchanged. */
 function generateOtpCode(): string {
+  if (process.env.NODE_ENV !== "production") return DEV_FIXED_OTP_CODE;
   const max = 10 ** CODE_DIGITS;
   return randomInt(0, max).toString().padStart(CODE_DIGITS, "0");
 }

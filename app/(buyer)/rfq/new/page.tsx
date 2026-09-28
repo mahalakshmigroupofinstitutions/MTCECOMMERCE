@@ -36,6 +36,11 @@ export default async function NewRfqPage({
           Please enter a quantity.
         </p>
       )}
+      {error === "attachment" && (
+        <p className="mt-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
+          That attachment couldn&rsquo;t be uploaded — check the file type and make sure it&rsquo;s under 15MB.
+        </p>
+      )}
 
       <form action={submitRfq} className="mt-5 flex flex-col gap-4" encType="multipart/form-data">
         {!buyerId && (

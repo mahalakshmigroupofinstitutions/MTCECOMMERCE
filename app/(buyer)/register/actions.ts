@@ -16,7 +16,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { completeBuyerRegistration } from "@/lib/session";
 import { requestBuyerOtp, verifyBuyerOtp } from "@/lib/buyerOtp";
-import { normalizePhone } from "@/lib/phone";
+import { composePhoneInput, isPlausiblePhoneNumber, normalizePhone } from "@/lib/phone";
+import { isValidGstin, normalizeGstin } from "@/lib/gstin";
 import { sign, unsign } from "@/lib/signedCookie";
 import { str, withErrorParam as withError } from "@/lib/formData";
 
@@ -25,11 +26,16 @@ const PENDING_MAX_AGE_SECONDS = 15 * 60;
 
 interface PendingRegistration {
   phone: string;
+  phoneCountryCode?: string;
   name: string;
   companyName?: string;
   gstNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  country?: string;
   city?: string;
   state?: string;
+  pincode?: string;
   /** Where to land after verification — preserves the existing ?next= deep
    * link (e.g. "log in to save this supplier") that the /login page already
    * passes through to /register today. */
@@ -87,26 +93,49 @@ function withNext(path: string, next: string) {
 
 export async function requestRegisterOtpAction(formData: FormData) {
   const name = str(formData, "name");
-  const phone = normalizePhone(str(formData, "phone"));
   const companyName = str(formData, "companyName");
+  const phoneCountryCode = str(formData, "phoneCountryCode") ?? "+91";
+  const phoneLocal = str(formData, "phone");
+  const addressLine1 = str(formData, "addressLine1");
+  const country = str(formData, "country");
   const city = str(formData, "city");
   const state = str(formData, "state");
-  const gstNumber = str(formData, "gstNumber");
+  const pincode = str(formData, "pincode");
   const next = str(formData, "next") ?? "/";
 
   // Server-side is the real gate — the form's `required` attributes are only a
-  // convenience. gstNumber is deliberately excluded: it's the one optional field.
-  if (!name || !phone || !companyName || !city || !state) {
+  // convenience. addressLine2/gstNumber are deliberately excluded: the two
+  // optional fields.
+  if (!name || !companyName || !phoneLocal || !addressLine1 || !country || !city || !state) {
     redirect(withNext(withError("/register", "identify"), next));
+  }
+
+  if (!isPlausiblePhoneNumber(phoneCountryCode, phoneLocal!)) {
+    redirect(withNext(withError("/register", "invalidPhone"), next));
+  }
+  const phone = normalizePhone(composePhoneInput(phoneCountryCode, phoneLocal!));
+  if (!phone) {
+    redirect(withNext(withError("/register", "invalidPhone"), next));
+  }
+
+  const gstNumberRaw = str(formData, "gstNumber");
+  const gstNumber = gstNumberRaw ? normalizeGstin(gstNumberRaw) : undefined;
+  if (gstNumber && country === "India" && !isValidGstin(gstNumber)) {
+    redirect(withNext(withError("/register", "invalidGstin"), next));
   }
 
   await setPendingRegistration({
     phone: phone!,
+    phoneCountryCode,
     name: name!,
     companyName,
     gstNumber,
+    addressLine1,
+    addressLine2: str(formData, "addressLine2"),
+    country,
     city,
     state,
+    pincode,
     next,
   });
 

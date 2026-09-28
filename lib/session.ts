@@ -66,19 +66,29 @@ export async function identifyBuyer(input: {
  * buyers exactly as before. */
 export async function completeBuyerRegistration(input: {
   phone: string;
+  phoneCountryCode?: string;
   name: string;
   companyName?: string;
   gstNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  country?: string;
   city?: string;
   state?: string;
+  pincode?: string;
 }) {
   const verifiedAt = new Date();
   const data = {
     name: input.name,
+    phoneCountryCode: input.phoneCountryCode,
     companyName: input.companyName,
     gstNumber: input.gstNumber,
+    addressLine1: input.addressLine1,
+    addressLine2: input.addressLine2,
+    country: input.country,
     city: input.city,
     state: input.state,
+    pincode: input.pincode,
     phoneVerifiedAt: verifiedAt,
   };
   const buyer = await prisma.buyer.upsert({

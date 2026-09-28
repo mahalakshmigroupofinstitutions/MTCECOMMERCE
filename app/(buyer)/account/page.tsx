@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { buttonClassName, SubmitButton } from "@/components/ui";
 import { getCurrentBuyerId, getCurrentBuyer } from "@/lib/session";
-import { updateProfile, logoutBuyer } from "@/app/(buyer)/account/actions";
+import { logoutBuyer } from "@/app/(buyer)/account/actions";
+import { AccountDetailsCard } from "@/components/buyer/AccountDetailsCard";
+import { getAllCountries, findCountryIsoByName, findStateIsoByName } from "@/lib/location";
 
 export const revalidate = 0;
-
-const inputClass = "w-full rounded-xl border border-line px-3.5 py-3 text-sm text-ink outline-none placeholder:text-faint";
 
 /* Profile/company information only. Saved suppliers live at /saved-suppliers
  * and RFQ history lives at /rfq — this page used to fold both in, which made
@@ -25,6 +25,9 @@ export default async function AccountPage({
   }
 
   const buyer = await getCurrentBuyer();
+  const countries = getAllCountries();
+  const countryIso = findCountryIsoByName(buyer?.country) ?? "IN";
+  const stateIso = findStateIsoByName(countryIso, buyer?.state);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6 md:py-8">
@@ -39,39 +42,23 @@ export default async function AccountPage({
 
       <div className="rounded-2xl border border-line p-5">
         <h2 className="mb-4 text-[15px] font-extrabold text-ink">Profile</h2>
-        <form action={updateProfile} className="flex flex-col gap-3">
-          <div>
-            <div className="mb-1.5 text-[12px] font-bold text-faint">Mobile number</div>
-            <div className="rounded-xl border border-line bg-wash px-3.5 py-3 font-mono text-sm text-sub">
-              {buyer?.phone}
-            </div>
-          </div>
-          <div>
-            <div className="mb-1.5 text-[12px] font-bold text-ink">Name</div>
-            <input name="name" defaultValue={buyer?.name ?? ""} className={inputClass} />
-          </div>
-          <div>
-            <div className="mb-1.5 text-[12px] font-bold text-ink">Company name</div>
-            <input name="companyName" defaultValue={buyer?.companyName ?? ""} className={inputClass} />
-          </div>
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <div className="mb-1.5 text-[12px] font-bold text-ink">GST number</div>
-              <input name="gstNumber" defaultValue={buyer?.gstNumber ?? ""} className={inputClass} />
-            </div>
-            <div className="flex-1">
-              <div className="mb-1.5 text-[12px] font-bold text-ink">City</div>
-              <input name="city" defaultValue={buyer?.city ?? ""} className={inputClass} />
-            </div>
-            <div className="flex-1">
-              <div className="mb-1.5 text-[12px] font-bold text-ink">State</div>
-              <input name="state" defaultValue={buyer?.state ?? ""} className={inputClass} />
-            </div>
-          </div>
-          <SubmitButton pendingText="Saving…" className={`${buttonClassName({ size: "sm" })} self-start`}>
-            Save changes
-          </SubmitButton>
-        </form>
+        <AccountDetailsCard
+          buyer={{
+            phone: buyer?.phone ?? "",
+            name: buyer?.name ?? null,
+            companyName: buyer?.companyName ?? null,
+            gstNumber: buyer?.gstNumber ?? null,
+            addressLine1: buyer?.addressLine1 ?? null,
+            addressLine2: buyer?.addressLine2 ?? null,
+            country: buyer?.country ?? null,
+            state: buyer?.state ?? null,
+            city: buyer?.city ?? null,
+            pincode: buyer?.pincode ?? null,
+          }}
+          countries={countries}
+          countryIso={countryIso}
+          stateIso={stateIso}
+        />
       </div>
 
       <div className="mt-8 rounded-2xl border border-line p-4 text-center text-[13px] text-sub">

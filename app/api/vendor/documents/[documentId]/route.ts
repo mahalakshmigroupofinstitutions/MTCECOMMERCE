@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSupplierId } from "@/lib/vendorSession";
 import { getCurrentAdminId } from "@/lib/adminSession";
-import { resolveVendorDocumentPath } from "@/lib/localFileStorage";
+import { readPrivateFile } from "@/lib/localFileStorage";
 
 /* Readable by the vendor who uploaded the document, or by any admin (they have
  * to open KYC documents to verify them). Vendor lookups stay scoped to their own
@@ -19,8 +18,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ documen
   });
   if (!doc) return new NextResponse("Not found", { status: 404 });
 
-  const buffer = await readFile(resolveVendorDocumentPath(doc.filePath));
-  return new NextResponse(new Uint8Array(buffer), {
+  const file = await readPrivateFile(doc.filePath);
+  if (!file) return new NextResponse("Not found", { status: 404 });
+
+  return new NextResponse(file.stream, {
     headers: {
       "Content-Type": doc.mimeType,
       "Content-Disposition": `inline; filename="${doc.fileName}"`,
