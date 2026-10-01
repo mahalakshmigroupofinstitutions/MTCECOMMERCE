@@ -1,6 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import type { RfqStatus } from "@/lib/generated/prisma/client";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { publicProductWithSupplierWhere } from "@/lib/publicVisibility";
+import { parseLeadingNumber } from "@/lib/rfqForm";
+
+/** Expected, user-facing failures of the buyer's quote actions. Anything else
+ * thrown out of acceptQuote/rejectQuote is a genuine server error. */
+export type QuoteActionErrorCode = "notFound" | "notPending" | "rfqClosed";
+
+export class QuoteActionError extends Error {
+  constructor(readonly code: QuoteActionErrorCode) {
+    super(`Quote action failed: ${code}`);
+    this.name = "QuoteActionError";
+  }
+}
 
 type Db = typeof prisma | Prisma.TransactionClient;
 
@@ -40,6 +53,28 @@ export async function createRfq(input: CreateRfqInput) {
   return prisma.rFQ.create({ data: input });
 }
 
+/** Server-side check of the product/category an RFQ form posted. A product
+ * must be publicly listed (same rule the catalog uses) and then decides the
+ * category itself — a client-supplied categoryId is never trusted alongside
+ * it. Returns null when either id doesn't resolve. */
+export async function resolveRfqTarget(input: {
+  productId?: string;
+  categoryId?: string;
+}): Promise<{ productId?: string; categoryId?: string } | null> {
+  if (input.productId) {
+    const product = await prisma.product.findFirst({
+      where: { id: input.productId, ...publicProductWithSupplierWhere },
+      select: { id: true, categoryId: true },
+    });
+    return product ? { productId: product.id, categoryId: product.categoryId } : null;
+  }
+  if (input.categoryId) {
+    const category = await prisma.category.findUnique({ where: { id: input.categoryId }, select: { id: true } });
+    return category ? { categoryId: category.id } : null;
+  }
+  return {};
+}
+
 export async function getRfqsForBuyer(buyerId: string) {
   return prisma.rFQ.findMany({
     where: { buyerId },
@@ -50,17 +85,22 @@ export async function getRfqsForBuyer(buyerId: string) {
 
 export type RfqSummary = Awaited<ReturnType<typeof getRfqsForBuyer>>[number];
 
+const rfqWithQuotesInclude = {
+  buyer: true,
+  product: true,
+  category: true,
+  quotes: { include: { supplier: true }, orderBy: { price: "asc" } },
+  orders: true,
+} satisfies Prisma.RFQInclude;
+
 export async function getRfqWithQuotes(id: string) {
-  return prisma.rFQ.findUnique({
-    where: { id },
-    include: {
-      buyer: true,
-      product: true,
-      category: true,
-      quotes: { include: { supplier: true }, orderBy: { price: "asc" } },
-      orders: true,
-    },
-  });
+  return prisma.rFQ.findUnique({ where: { id }, include: rfqWithQuotesInclude });
+}
+
+/** The buyer-facing read: null unless the RFQ belongs to `buyerId`, so a
+ * guessed or shared id never reveals another buyer's RFQ or its quotes. */
+export async function getRfqWithQuotesForBuyer(id: string, buyerId: string) {
+  return prisma.rFQ.findFirst({ where: { id, buyerId }, include: rfqWithQuotesInclude });
 }
 
 export type RfqWithQuotes = NonNullable<Awaited<ReturnType<typeof getRfqWithQuotes>>>;
@@ -146,13 +186,9 @@ export async function verifyQuote(
   });
 }
 
-/** Best-effort: pulls the leading number out of a free-text quantity like "25 tons". */
-export function parseLeadingNumber(text: string): number | null {
-  const match = text.match(/[\d,]+(\.\d+)?/);
-  if (!match) return null;
-  const n = parseFloat(match[0].replace(/,/g, ""));
-  return Number.isFinite(n) ? n : null;
-}
+// Moved to lib/rfqForm.ts (pure, shared with RFQ form validation); re-exported
+// so existing importers (e.g. lib/vendorDashboard.ts) are unchanged.
+export { parseLeadingNumber };
 
 const ORDER_STEPS = [
   { key: "confirmed", label: "Order Confirmed" },
@@ -185,7 +221,21 @@ export async function acceptQuote(
     const qty = parseLeadingNumber(quantity);
     const total = qty !== null ? Math.round(qty * quote.price) : quote.price;
 
-    await tx.quote.update({ where: { id: quoteId }, data: { status: "ACCEPTED" } });
+    // Claim the RFQ and the quote with conditional updates rather than a
+    // read-then-write, so two concurrent accepts can't both create an order:
+    // the second blocks on the row lock, then matches nothing and rolls back.
+    if (quote.rfqId) {
+      const closed = await tx.rFQ.updateMany({
+        where: { id: quote.rfqId, status: { not: "CLOSED" } },
+        data: { status: "CLOSED" },
+      });
+      if (closed.count === 0) throw new QuoteActionError("rfqClosed");
+    }
+    const accepted = await tx.quote.updateMany({
+      where: { id: quoteId, status: "PENDING" },
+      data: { status: "ACCEPTED" },
+    });
+    if (accepted.count === 0) throw new QuoteActionError("notPending");
     await tx.quote.updateMany({
       where: {
         id: { not: quoteId },
@@ -194,9 +244,6 @@ export async function acceptQuote(
       },
       data: { status: "REJECTED" },
     });
-    if (quote.rfqId) {
-      await tx.rFQ.update({ where: { id: quote.rfqId }, data: { status: "CLOSED" } });
-    }
 
     const order = await tx.order.create({
       data: {
@@ -228,6 +275,35 @@ export async function acceptQuote(
   });
 }
 
+/** Only a still-pending quote can be rejected — an accepted one has already
+ * become an order. */
 export async function rejectQuote(quoteId: string) {
-  return prisma.quote.update({ where: { id: quoteId }, data: { status: "REJECTED" } });
+  const result = await prisma.quote.updateMany({
+    where: { id: quoteId, status: "PENDING" },
+    data: { status: "REJECTED" },
+  });
+  if (result.count === 0) throw new QuoteActionError("notPending");
+}
+
+/** Ownership gate for the buyer's accept/reject actions: the quote must belong
+ * to `rfqId`, and that RFQ to `buyerId` — checking the RFQ alone would let a
+ * buyer pair their own rfqId with someone else's quoteId. Ownership never
+ * changes after creation, so checking it before the (atomic) state change is
+ * safe. */
+async function assertBuyerOwnsRfqQuote(buyerId: string, rfqId: string, quoteId: string) {
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId, rfqId, rfq: { buyerId } },
+    select: { id: true },
+  });
+  if (!quote) throw new QuoteActionError("notFound");
+}
+
+export async function acceptRfqQuoteForBuyer(buyerId: string, rfqId: string, quoteId: string) {
+  await assertBuyerOwnsRfqQuote(buyerId, rfqId, quoteId);
+  return acceptQuote(quoteId);
+}
+
+export async function rejectRfqQuoteForBuyer(buyerId: string, rfqId: string, quoteId: string) {
+  await assertBuyerOwnsRfqQuote(buyerId, rfqId, quoteId);
+  return rejectQuote(quoteId);
 }

@@ -70,6 +70,7 @@ export async function completeBuyerRegistration(input: {
   name: string;
   companyName?: string;
   gstNumber?: string;
+  gstRegistered?: boolean;
   addressLine1?: string;
   addressLine2?: string;
   country?: string;
@@ -82,7 +83,9 @@ export async function completeBuyerRegistration(input: {
     name: input.name,
     phoneCountryCode: input.phoneCountryCode,
     companyName: input.companyName,
-    gstNumber: input.gstNumber,
+    // GST Registered = No always means no GSTIN on record.
+    gstNumber: input.gstRegistered === false ? null : input.gstNumber,
+    gstRegistered: input.gstRegistered,
     addressLine1: input.addressLine1,
     addressLine2: input.addressLine2,
     country: input.country,

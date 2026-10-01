@@ -1,12 +1,29 @@
-import { getCurrentBuyerId } from "@/lib/session";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentBuyer } from "@/lib/session";
 import { getCategories, getProductBySlug } from "@/lib/catalog";
 import { submitRfq } from "@/app/(buyer)/rfq/actions";
 import { buttonClassName, SubmitButton } from "@/components/ui";
+import { buyerTypeLabel, effectiveGstRegistered, getProfileCompletion } from "@/lib/buyerProfile";
+import {
+  RFQ_DELIVERY_MODE_OPTIONS,
+  RFQ_DELIVERY_TIMELINE_OPTIONS,
+  RFQ_FORM_ERROR_MESSAGES,
+  RFQ_PAYMENT_TERMS_OPTIONS,
+  RFQ_UOM_OPTIONS,
+} from "@/lib/rfqForm";
 
 export const revalidate = 0;
 
 const inputClass = "w-full rounded-xl border border-line px-3.5 py-3 text-sm text-ink outline-none placeholder:text-faint";
 const selectClass = inputClass;
+
+const ERROR_MESSAGES: Record<string, string> = {
+  ...RFQ_FORM_ERROR_MESSAGES,
+  attachment: "That attachment couldn’t be uploaded — check the file type and make sure it’s under 15MB.",
+  target: "That product or category isn’t available any more — please choose again.",
+  unexpected: "Something went wrong saving your RFQ. Please try again.",
+};
 
 export default async function NewRfqPage({
   searchParams,
@@ -14,12 +31,24 @@ export default async function NewRfqPage({
   searchParams: Promise<{ product?: string; error?: string }>;
 }) {
   const { product: productSlug, error } = await searchParams;
-  const buyerId = await getCurrentBuyerId();
+
+  // RFQs need an OTP-verified buyer — the form no longer collects guest
+  // name/phone. ?next= brings them straight back here (product included).
+  const buyer = await getCurrentBuyer();
+  if (!buyer) {
+    const here = productSlug ? `/rfq/new?product=${encodeURIComponent(productSlug)}` : "/rfq/new";
+    redirect(`/login?next=${encodeURIComponent(here)}`);
+  }
 
   const [product, categories] = await Promise.all([
     productSlug ? getProductBySlug(productSlug) : null,
     getCategories(),
   ]);
+
+  const errorMessage = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.unexpected) : undefined;
+  const gstRegistered = effectiveGstRegistered(buyer.gstRegistered, buyer.gstNumber);
+  const completion = getProfileCompletion(buyer);
+  const location = [buyer.city, buyer.state, buyer.pincode].filter(Boolean).join(", ");
 
   return (
     <div className="mx-auto max-w-lg px-6 py-8">
@@ -31,36 +60,61 @@ export default async function NewRfqPage({
       ) : (
         <p className="mt-1.5 text-[13px] text-sub">One request goes out to multiple suppliers.</p>
       )}
-      {error === "quantity" && (
-        <p className="mt-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
-          Please enter a quantity.
+      {errorMessage && (
+        <p role="alert" className="mt-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
+          {errorMessage}
         </p>
       )}
-      {error === "attachment" && (
-        <p className="mt-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
-          That attachment couldn&rsquo;t be uploaded — check the file type and make sure it&rsquo;s under 15MB.
-        </p>
-      )}
+
+      {/* Suppliers see this saved profile alongside the RFQ — it isn't
+          re-entered here; changes are made from Account details. */}
+      <div className="mt-5 rounded-2xl border border-line p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-[13px] font-bold text-ink">Requesting as</p>
+          <Link href="/account" className="text-[12px] font-bold text-ink underline">
+            Edit profile
+          </Link>
+        </div>
+        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
+          <dt className="text-sub">Company</dt>
+          <dd className="text-ink">{buyer.companyName || "—"}</dd>
+          <dt className="text-sub">Contact person</dt>
+          <dd className="text-ink">
+            {buyer.name || "—"}
+            {buyer.designation && <span className="text-sub"> · {buyer.designation}</span>}
+          </dd>
+          <dt className="text-sub">Phone</dt>
+          <dd className="font-mono text-ink">{buyer.phone}</dd>
+          {buyer.businessEmail && (
+            <>
+              <dt className="text-sub">Email</dt>
+              <dd className="text-ink">{buyer.businessEmail}</dd>
+            </>
+          )}
+          {buyer.buyerType && (
+            <>
+              <dt className="text-sub">Buyer type</dt>
+              <dd className="text-ink">{buyerTypeLabel(buyer.buyerType)}</dd>
+            </>
+          )}
+          <dt className="text-sub">GSTIN</dt>
+          <dd className="font-mono text-ink">{gstRegistered ? buyer.gstNumber : gstRegistered === false ? "Not registered" : "—"}</dd>
+          <dt className="text-sub">Location</dt>
+          <dd className="text-ink">{location || "—"}</dd>
+        </dl>
+        {completion.percent < 100 && (
+          <p className="mt-3 text-[12px] text-sub">
+            Your profile is {completion.percent}% complete. A complete profile helps suppliers quote faster —{" "}
+            <Link href="/account" className="font-bold text-ink underline">
+              finish it in Account details
+            </Link>
+            .
+          </p>
+        )}
+      </div>
 
       <form action={submitRfq} className="mt-5 flex flex-col gap-4" encType="multipart/form-data">
-        {!buyerId && (
-          <div className="rounded-2xl border border-line p-4">
-            <p className="mb-3 text-[13px] font-bold text-ink">Your details</p>
-            {error === "identify" && (
-              <p className="mb-3 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
-                Please enter your name and a valid phone number.
-              </p>
-            )}
-            <div className="flex flex-col gap-3">
-              <input name="guestName" required placeholder="Your name" className={inputClass} />
-              <input name="guestPhone" required type="tel" placeholder="Mobile number" className={inputClass} />
-              <input name="guestCompanyName" placeholder="Company name (optional)" className={inputClass} />
-              <input name="guestGstNumber" placeholder="GST number (optional)" className={inputClass} />
-              <input name="guestCity" placeholder="City (optional)" className={inputClass} />
-            </div>
-          </div>
-        )}
-
+        {productSlug && <input type="hidden" name="productSlug" value={productSlug} />}
         {product ? (
           <>
             <input type="hidden" name="productId" value={product.id} />
@@ -109,11 +163,11 @@ export default async function NewRfqPage({
               <option value="" disabled>
                 Select
               </option>
-              <option value="pieces">Pieces / Units</option>
-              <option value="kg">Kilograms</option>
-              <option value="tons">Tons</option>
-              <option value="liters">Liters</option>
-              <option value="boxes">Boxes</option>
+              {RFQ_UOM_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -155,9 +209,11 @@ export default async function NewRfqPage({
               <option value="" disabled>
                 Select
               </option>
-              <option value="7">Within 7 Days</option>
-              <option value="15">Within 15 Days</option>
-              <option value="30">Within 30 Days</option>
+              {RFQ_DELIVERY_TIMELINE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -166,8 +222,11 @@ export default async function NewRfqPage({
               <option value="" disabled>
                 Select
               </option>
-              <option value="DAP">Door Delivery (DAP)</option>
-              <option value="EXW">Ex-Works Pickup</option>
+              {RFQ_DELIVERY_MODE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -178,9 +237,11 @@ export default async function NewRfqPage({
             <option value="" disabled>
               Select
             </option>
-            <option value="credit30">30 Days Credit</option>
-            <option value="full_on_delivery">100% on Delivery</option>
-            <option value="advance_balance">Advance + Balance</option>
+            {RFQ_PAYMENT_TERMS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </div>
 

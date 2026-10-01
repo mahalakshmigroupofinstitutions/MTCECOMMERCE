@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Icon } from "@/components/icons/Icon";
 import { buttonClassName } from "@/components/ui";
 import { QuoteCard } from "@/components/rfq/QuoteCard";
 import { getCurrentBuyerId } from "@/lib/session";
-import { getRfqWithQuotes } from "@/lib/rfq";
+import { getRfqWithQuotesForBuyer } from "@/lib/rfq";
 
 export const revalidate = 0;
 
@@ -14,13 +14,33 @@ const STATUS_LABEL: Record<string, string> = {
   CLOSED: "Order placed",
 };
 
-export default async function RfqDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const [rfq, buyerId] = await Promise.all([getRfqWithQuotes(id), getCurrentBuyerId()]);
+/** ?error= codes set by acceptQuoteAction/rejectQuoteAction. */
+const ERROR_MESSAGES: Record<string, string> = {
+  notFound: "That quote isn't part of this RFQ.",
+  notPending: "That quote has already been accepted or rejected.",
+  rfqClosed: "You've already accepted a quote for this RFQ.",
+  unexpected: "Something went wrong. Please try again.",
+};
+
+export default async function RfqDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const [{ id }, { error }] = await Promise.all([params, searchParams]);
+
+  const buyerId = await getCurrentBuyerId();
+  if (!buyerId) redirect(`/login?next=${encodeURIComponent(`/rfq/${id}`)}`);
+
+  // Scoped to the logged-in buyer: someone else's RFQ is indistinguishable
+  // from one that doesn't exist.
+  const rfq = await getRfqWithQuotesForBuyer(id, buyerId!);
   if (!rfq) notFound();
 
-  const isOwner = buyerId === rfq.buyerId;
   const lowestPriceQuoteId = rfq.quotes[0]?.id;
+  const errorMessage = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.unexpected) : undefined;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6 md:py-8">
@@ -48,6 +68,12 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
         )}
       </div>
       {rfq.notes && <p className="mt-2 text-[13.5px] text-sub">{rfq.notes}</p>}
+
+      {errorMessage && (
+        <p role="alert" className="mt-4 rounded-lg bg-wash px-3 py-2 text-[12.5px] font-semibold text-ink">
+          {errorMessage}
+        </p>
+      )}
 
       {rfq.status === "CLOSED" && (
         <div className="mt-5 rounded-2xl bg-ink p-4 text-white">
@@ -89,18 +115,12 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
                 quote={q}
                 rfqId={rfq.id}
                 isLowestPrice={q.id === lowestPriceQuoteId}
-                canAct={isOwner && rfq.status !== "CLOSED"}
+                canAct={rfq.status !== "CLOSED"}
               />
             ))}
           </div>
         )}
       </div>
-
-      {!isOwner && (
-        <p className="mt-6 text-[12px] text-faint">
-          You&rsquo;re viewing a shared RFQ link — only the requester can accept or reject quotes.
-        </p>
-      )}
 
       <Link href="/rfq/new" className={`${buttonClassName({ variant: "outline", size: "sm" })} mt-8 inline-flex`}>
         <Icon name="plus" size={16} strokeWidth={2} /> Post another RFQ

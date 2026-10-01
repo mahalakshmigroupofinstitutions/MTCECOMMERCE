@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isValidGstin, normalizeGstin } from "@/lib/gstin";
+import { GstFields } from "@/components/buyer/GstFields";
 import { isPlausiblePhoneNumber } from "@/lib/phone";
 import type { LocationOption } from "@/lib/location";
 
@@ -20,6 +20,7 @@ export interface AddressFieldsInitial {
   addressLine1?: string | null;
   addressLine2?: string | null;
   gstNumber?: string | null;
+  gstRegistered?: boolean | null;
   phoneCountryCode?: string | null;
 }
 
@@ -31,14 +32,26 @@ export interface AddressFieldsProps {
   includePhone?: boolean;
   phoneCountryCodes?: { dialCode: string; label: string }[];
   initial?: AddressFieldsInitial;
+  /** Registration renders GST Registered/GSTIN here (default). Account
+   * details passes false and renders <GstFields> in its Business Profile
+   * section instead, tracking the country via onCountryChange. */
+  showGst?: boolean;
+  onCountryChange?: (countryIso: string) => void;
 }
 
-/** Shared Country → State → City + pincode + GSTIN (+ optional phone)
+/** Shared Country → State → City + pincode + GST (+ optional phone)
  * fields, used by both the registration form and account details so the
  * cascading/validation behavior is defined exactly once. Renders plain named
  * inputs/selects meant to sit inside the caller's own <form action={...}> —
  * it never submits anything itself. */
-export function AddressFields({ countries, includePhone = false, phoneCountryCodes = [], initial }: AddressFieldsProps) {
+export function AddressFields({
+  countries,
+  includePhone = false,
+  phoneCountryCodes = [],
+  initial,
+  showGst = true,
+  onCountryChange,
+}: AddressFieldsProps) {
   const [countryIso, setCountryIso] = useState(initial?.countryIso || "IN");
   const [states, setStates] = useState<LocationOption[]>([]);
   const [stateIso, setStateIso] = useState(initial?.stateIso || "");
@@ -48,7 +61,6 @@ export function AddressFields({ countries, includePhone = false, phoneCountryCod
   const [cityTouched, setCityTouched] = useState(false);
   const [pincode, setPincode] = useState(initial?.pincode || "");
   const [pincodeStatus, setPincodeStatus] = useState<"idle" | "loading" | "found" | "notfound">("idle");
-  const [gstin, setGstin] = useState(initial?.gstNumber || "");
   const [phoneCountryCode, setPhoneCountryCode] = useState(initial?.phoneCountryCode || "+91");
   const [phoneLocal, setPhoneLocal] = useState("");
 
@@ -112,6 +124,7 @@ export function AddressFields({ countries, includePhone = false, phoneCountryCod
     setCity("");
     setStateTouched(false);
     setCityTouched(false);
+    onCountryChange?.(nextIso);
   }
 
   function handleStateChange(nextIso: string) {
@@ -168,10 +181,6 @@ export function AddressFields({ countries, includePhone = false, phoneCountryCod
       setPincodeStatus("notfound");
     }
   }
-
-  const gstinNormalized = normalizeGstin(gstin);
-  const gstinError =
-    countryIso === "IN" && gstinNormalized && !isValidGstin(gstinNormalized) ? "That doesn't look like a valid GSTIN." : null;
 
   const phoneError =
     includePhone && phoneLocal && !isPlausiblePhoneNumber(phoneCountryCode, phoneLocal)
@@ -287,19 +296,15 @@ export function AddressFields({ countries, includePhone = false, phoneCountryCod
             <p className="mt-1 text-[11.5px] text-faint">Couldn&rsquo;t auto-fill — please select State/City manually.</p>
           )}
         </div>
-        <div>
-          <div className={labelClass}>GSTIN (optional)</div>
-          <input
-            name="gstNumber"
-            placeholder="22AAAAA0000A1Z5"
-            value={gstin}
-            onChange={(e) => setGstin(e.target.value.toUpperCase())}
-            maxLength={15}
-            className={inputClass}
-          />
-          {gstinError && <p className={errorTextClass}>{gstinError}</p>}
-        </div>
       </div>
+
+      {showGst && (
+        <GstFields
+          countryIso={countryIso}
+          initialRegistered={initial?.gstRegistered}
+          initialGstNumber={initial?.gstNumber}
+        />
+      )}
 
       <div>
         <div className={labelClass}>Address line 1</div>

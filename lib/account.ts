@@ -1,16 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import type { BuyerProfileData } from "@/lib/buyerProfile";
 
-export interface UpdateBuyerProfileInput {
-  name?: string;
-  companyName?: string;
-  gstNumber?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  country?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-}
+/** Every editable field is always passed (optional ones as explicit null),
+ * so an emptied field is cleared rather than skipped by Prisma. Build it with
+ * validateBuyerProfile() in lib/buyerProfile.ts. */
+export type UpdateBuyerProfileInput = BuyerProfileData;
 
 export async function updateBuyerProfile(buyerId: string, input: UpdateBuyerProfileInput) {
   return prisma.buyer.update({ where: { id: buyerId }, data: input });

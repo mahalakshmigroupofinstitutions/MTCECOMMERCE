@@ -30,6 +30,18 @@ model Buyer {
   city        String?
   state       String?
   pincode     String?
+  /// Business profile / compliance fields — all optional so legacy rows stay
+  /// valid. Registration only captures `gstRegistered`; the rest are filled in
+  /// from Account details. `name` doubles as the primary contact person.
+  buyerType            BuyerType?
+  yearEstablished      Int?
+  procurementFrequency ProcurementFrequency?
+  designation          String?
+  businessEmail        String?
+  panNumber            String?
+  /// null on rows created before this field existed — treat as "registered"
+  /// when `gstNumber` is set (see effectiveGstRegistered in lib/buyerProfile.ts).
+  gstRegistered        Boolean?
   /// Set only once phone OTP verification succeeds (see BuyerOtp). Never set
   /// by the old find-or-create paths (guest RFQ, etc.) — those still leave a
   /// buyer unverified, which is correct since they never proved the number.
@@ -46,6 +58,20 @@ model Buyer {
 enum BuyerOtpPurpose {
   REGISTER
   LOGIN
+}
+
+enum BuyerType {
+  RETAILER
+  WHOLESALER
+  CORPORATE
+  END_CONSUMER
+}
+
+enum ProcurementFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  ANNUAL_CONTRACT
 }
 
 /// Phone OTP for buyer registration/login. One row per requested code — never

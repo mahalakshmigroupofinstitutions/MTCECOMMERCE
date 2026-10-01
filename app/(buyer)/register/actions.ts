@@ -17,7 +17,7 @@ import { redirect } from "next/navigation";
 import { completeBuyerRegistration } from "@/lib/session";
 import { requestBuyerOtp, verifyBuyerOtp } from "@/lib/buyerOtp";
 import { composePhoneInput, isPlausiblePhoneNumber, normalizePhone } from "@/lib/phone";
-import { isValidGstin, normalizeGstin } from "@/lib/gstin";
+import { resolveGst } from "@/lib/buyerProfile";
 import { sign, unsign } from "@/lib/signedCookie";
 import { str, withErrorParam as withError } from "@/lib/formData";
 
@@ -30,6 +30,8 @@ interface PendingRegistration {
   name: string;
   companyName?: string;
   gstNumber?: string;
+  /** Absent on a pending cookie issued before GST Registered existed. */
+  gstRegistered?: boolean;
   addressLine1?: string;
   addressLine2?: string;
   country?: string;
@@ -118,18 +120,25 @@ export async function requestRegisterOtpAction(formData: FormData) {
     redirect(withNext(withError("/register", "invalidPhone"), next));
   }
 
-  const gstNumberRaw = str(formData, "gstNumber");
-  const gstNumber = gstNumberRaw ? normalizeGstin(gstNumberRaw) : undefined;
-  if (gstNumber && country === "India" && !isValidGstin(gstNumber)) {
-    redirect(withNext(withError("/register", "invalidGstin"), next));
+  // GST Registered = Yes requires a GSTIN (existing format/checksum rule for
+  // India); No discards any GSTIN. Same rule the account page applies.
+  const gst = resolveGst({
+    gstRegistered: str(formData, "gstRegistered"),
+    gstNumber: str(formData, "gstNumber"),
+    country,
+  });
+  if (!gst.ok) {
+    redirect(withNext(withError("/register", gst.error), next));
   }
+  const { gstRegistered, gstNumber } = gst;
 
   await setPendingRegistration({
     phone: phone!,
     phoneCountryCode,
     name: name!,
     companyName,
-    gstNumber,
+    gstNumber: gstNumber ?? undefined,
+    gstRegistered,
     addressLine1,
     addressLine2: str(formData, "addressLine2"),
     country,

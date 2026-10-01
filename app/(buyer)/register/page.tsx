@@ -11,7 +11,8 @@ const inputClass = "w-full rounded-xl border border-line px-3.5 py-3 text-sm tex
 const ERROR_MESSAGES: Record<string, string> = {
   identify: "Please fill in your name, mobile number, company name, and address.",
   invalidPhone: "That mobile number doesn't look right for the selected country code.",
-  invalidGstin: "That GSTIN doesn't look valid — double-check it or leave it blank.",
+  invalidGstin: "That GSTIN doesn't look valid — double-check it.",
+  gstinRequired: "You selected GST registered — please enter your GSTIN.",
   notfound: "No account found for that number — create one below.",
   tooSoon: "You already have a code on the way — please wait a little before requesting another.",
   rateLimited: "Too many code requests for this number. Please try again in a while.",
